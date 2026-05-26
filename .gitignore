@@ -1,1 +1,7 @@
 data/
+*.csv
+*.xlsx
+*.pkl
+.env
+__pycache__/
+.DS_Store
