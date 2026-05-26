@@ -1,0 +1,30 @@
+paths:
+  raw:
+    sid: 
+    sedd: 
+    nvdrs_rad: 
+  processed:
+    features: 
+    outcomes: 
+  external:
+    census: 
+    brfss: 
+    climate: 
+    housing: 
+
+columns:
+  county_id: 
+  state_id: 
+  zip_id: 
+  date: 
+  outcome_attempts: 
+  outcome_deaths: 
+
+date_range:
+  start: 
+  end: 
+
+geographic_levels:
+  primary: 
+  secondary:
+    

@@ -1,0 +1,43 @@
+cross_validation:
+  folds: 
+  strategy: 
+  metric: 
+
+lightgbm:
+  n_estimators: 
+  learning_rate: 
+  max_depth: 
+  num_leaves: 
+  min_child_samples: 
+  subsample: 
+  colsample_bytree: 
+
+xgboost:
+  n_estimators: 
+  learning_rate: 
+  max_depth: 
+  subsample: 
+  colsample_bytree: 
+  reg_alpha: 
+  reg_lambda: 
+
+catboost:
+  iterations: 
+  learning_rate: 
+  depth: 
+  l2_leaf_reg: 
+
+random_forest:
+  n_estimators: 
+  max_depth: 
+  min_samples_split: 
+  max_features: 
+
+neural_network:
+  hidden_layers: 
+  dropout_rate: 
+  learning_rate: 
+  batch_size: 
+  epochs: 
+  quantiles:
+    
