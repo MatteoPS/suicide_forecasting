@@ -1,4 +1,4 @@
-`
+
 .
 ├── config/                     # Model configs, hyperparameters, YAML files
 ├── data/                       # All data — this is gitignored
@@ -17,4 +17,3 @@
 │   └── statistical/            # Bayesian hierarchical models; spatial smoothing; temporal integration
 │       └── README.md           
 └── test/                       # Unit and integration tests for src/ modules
-`
