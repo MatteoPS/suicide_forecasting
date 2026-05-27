@@ -1,1 +1,735 @@
 https://htmlpreview.github.io/?https://github.com/MatteoPS/suicide_forecasting/blob/main/docs/AFSP_models_table.html
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytical Models & Data Sources</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --navy: #0d1b2a;
+    --navy-mid: #162436;
+    --slate: #1e3a5f;
+    --blue-accent: #2d6fa5;
+    --steel: #4a7fa5;
+    --light-blue: #cfe3f3;
+    --pale: #eef5fb;
+    --gold: #c9933a;
+    --gold-pale: #fdf3e3;
+    --green: #2d7a55;
+    --green-pale: #e3f4ec;
+    --purple: #5e3d8a;
+    --purple-pale: #f0eaf8;
+    --gray: #444444;
+    --gray-pale: #d0d0d0;
+    --red: #8a2d3d;
+    --red-pale: #faeaec;
+    --text: #1a2535;
+    --text-muted: #4a5a70;
+    --border: #c2d4e8;
+    --row-alt: #f5f9fd;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: #f0f4f8;
+    color: var(--text);
+    padding: 40px 24px;
+    min-height: 100vh;
+  }
+
+  .wrapper {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  header {
+    background: var(--navy);
+    color: white;
+    padding: 32px 40px;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 4px solid var(--gold);
+  }
+
+  header h1 {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.35;
+    margin-bottom: 6px;
+  }
+
+  header .subtitle {
+    font-size: 0.82rem;
+    color: #8aadcc;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Legend */
+  .legend {
+    background: var(--navy-mid);
+    padding: 16px 40px;
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .legend-label {
+    font-size: 0.72rem;
+    color: #8aadcc;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 6px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+  }
+
+  .badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tag-prelim { background: #662430; color: #d8a0af; }
+  .tag-prelim .badge-dot { background: #7a85d8; }
+  .tag-aim1 { background: #1a3a5a; color: #8ec8f0; }
+  .tag-aim1 .badge-dot { background: #3d9de0; }
+  .tag-aim2 { background: #2a1a4a; color: #c0a0e8; }
+  .tag-aim2 .badge-dot { background: #9060d8; }
+
+  /* Table container */
+  .table-wrap {
+    background: white;
+    border-radius: 0 0 10px 10px;
+    overflow-x: auto;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.845rem;
+  }
+
+  thead tr {
+    background: var(--slate);
+    color: white;
+  }
+
+  thead th {
+    padding: 14px 18px;
+    text-align: left;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border-right: 1px solid rgba(255,255,255,0.1);
+    white-space: nowrap;
+  }
+
+  thead th:last-child { border-right: none; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  tbody tr:hover { background: var(--light-blue); }
+
+  td {
+    padding: 14px 18px;
+    vertical-align: top;
+    border-right: 1px solid var(--border);
+    line-height: 1.55;
+  }
+
+  td:last-child { border-right: none; }
+
+  /* Section header rows */
+  tr.section-header td {
+    background: var(--navy);
+    color: white;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 9px 18px;
+    border-right: none;
+  }
+
+  /* Aim badge inline */
+  .aim-tag {
+    display: inline-block;
+    font-size: 0.67rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    vertical-align: middle;
+    margin-bottom: 2px;
+  }
+
+  .aim-prelim { background: #ffcdcd; color: #650000; }
+  .aim-1 { background: var(--light-blue); color: var(--slate); }
+  .aim-2 { background: var(--purple); color: var(--purple-pale); }
+  .aim-interp { background: var(--purple); color: var(--purple-pale); }
+
+  /* Model name */
+  .model-name {
+    font-family: 'Libre Baskerville', serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--navy);
+    display: block;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .model-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Dataset pills */
+  .datasets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ds {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-size: 0.73rem;
+    font-weight: 500;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  .ds-primary {
+    background: var(--light-blue);
+    color: var(--slate);
+    border: 1px solid #a8cadf;
+  }
+
+  .ds-secondary {
+    background: var(--green-pale);
+    color: var(--green);
+    border: 1px solid #a8d4bc;
+  }
+
+  .ds-context {
+    background: var(--gold-pale);
+    color: #7a5010;
+    border: 1px solid #dfc090;
+  }
+
+  .ds-text {
+    background: var(--purple-pale);
+    color: var(--purple);
+    border: 1px solid #c0a0e0;
+  }
+  .ds-988 {
+    background: var(--red-pale);
+    color: var(--red);
+    border: 1px solid #e0a0a0;
+  }
+  .ds-gray {
+    background: var(--gray-pale);
+    color: var(--gray);
+    border: 1px solid #a5a5a5;
+  }
+
+  /* Citations */
+  .cites {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: flex-start;
+  }
+
+  .cref {
+    display: inline-block;
+    background: var(--navy);
+    color: white;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.69rem;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+  }
+
+  .cref.prelim { background: #5a5aaa; }
+  .cref.note { background: var(--red); font-size: 0.65rem; padding: 2px 6px; }
+
+  .cite-note {
+    font-size: 0.72rem;
+    color: var(--red);
+    font-style: italic;
+    margin-top: 5px;
+    display: block;
+  }
+
+  /* Number col */
+  .num {
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    text-align: center;
+    min-width: 36px;
+  }
+
+  /* Footnote */
+  footer {
+    margin-top: 20px;
+    font-size: 0.73rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  footer strong {
+    color: var(--text);
+  }
+
+  .legend-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <h1>Analytical Models & Data Sources</h1>
+  </header>
+
+  <div class="legend">
+    <span class="legend-label" style="margin-left:16px;">Datasets:</span>
+    <span style="font-size:0.72rem; color:#7abcd8;">
+      <span style="background:#2a4a6a;padding:2px 7px;border-radius:4px;">SEDD/SID</span> = ED &amp; Inpatient attempt data &nbsp;
+      <span style="background:#2a4a3a;padding:2px 7px;border-radius:4px;">NVDRS-RAD</span> = Violent death registry &nbsp;
+      <span style="background:#4a3a1a;padding:2px 7px;border-radius:4px;">Contextual</span> = 76-variable set from 26 sources &nbsp;
+      <span style="background:#4a2a6a;padding:2px 7px;border-radius:4px;">Narratives</span> = NVDRS-RAD text data  &nbsp;
+      <span style="background:#6a2a48;padding:2px 7px;border-radius:4px;">988 Lifeline</span> = Lifeline call data
+    </span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:38px;">#</th>
+          <th style="width:240px;">Analysis / Model Type</th>
+          <th style="width:320px;">Datasets Required</th>
+          <th style="width:240px;">Citations</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- PRELIMINARY WORK -->
+        <tr class="section-header">
+          <td colspan="4">▸ Preliminary Work — Cluster Detection &amp; Spatial Analysis</td>
+        </tr>
+
+        <tr>
+          <td class="num">1</td>
+          <td>
+            <span class="aim-tag aim-prelim">Prelim</span>
+            <span class="model-name">Spatiotemporal Scan Statistics</span>
+            <span class="model-sub">Space-time cluster detection; SaTScan-style methods</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-primary">SEDD</span>
+              <span class="ds ds-primary">SID</span>
+              <span class="ds ds-secondary">NVDRS-RAD / Death certs</span>
+              <span class="ds ds-context">Census denominators</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">2</span>
+              <span class="cref">5</span>
+              <span class="cref">72</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">2</td>
+          <td>
+            <span class="aim-tag aim-prelim">Prelim</span>
+            <span class="model-name">Growth Mixture Models</span>
+            <span class="model-sub">Trajectory-based clustering of county-level suicide rates</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-secondary">NVDRS-RAD / Death certs</span>
+              <span class="ds ds-context">Census denominators</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">4</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- AIM 1: FORECASTING -->
+        <tr class="section-header">
+          <td colspan="4">▸ Aim 1 — Forecasting System: Statistical, Machine Learning &amp; Dynamical Approaches</td>
+        </tr>
+
+        <tr>
+          <td class="num">3</td>
+          <td>
+            <span class="aim-tag aim-1">Aim 1</span>
+            <span class="model-name">Bayesian Hierarchical Model<br>/ Conditional Autoregressive (CAR)</span>
+            <span class="model-sub">Statistical approach; spatiotemporal autocorrelation; county &amp; state-level</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-primary">SEDD</span>
+              <span class="ds ds-primary">SID</span>
+              <span class="ds ds-secondary">NVDRS-RAD (historical, lagged)</span>
+              <span class="ds ds-context">76 contextual predictors</span>
+              <span class="ds ds-context">Census / BRFSS</span>
+              <span class="ds ds-context">Daily weather / monthly unemployment (high-freq)</span>
+              <span class="ds ds-988">988 Lifeline?</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">3</span>
+              <span class="cref">26</span>
+              <span class="cref">75</span> <span class="model-sub">Prior use of conditional autoregressive models for suicide risk estimation</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">4</td>
+          <td>
+            <span class="aim-tag aim-1">Aim 1</span>
+            <span class="model-name">LightGBM</span>
+            <span class="model-sub">Gradient Boosting Decision Tree; ML approach; time-series forecasting of attempt counts</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-primary">SEDD</span>
+              <span class="ds ds-primary">SID</span>
+              <span class="ds ds-context">76 contextual predictors (ZIP, county, state scales)</span>
+              <span class="ds ds-context">High-freq dynamic predictors (weather, unemployment)</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">97</span> <span class="model-sub">Demonstrated strong performance in time series forecasting</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">5</td>
+          <td>
+            <span class="aim-tag aim-1">Aim 1</span>
+            <span class="model-name">Neural Networks (NN)</span>
+            <span class="model-sub">Deep learning; quantile-based probabilistic forecasting; non-linear patterns</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-primary">SEDD</span>
+              <span class="ds ds-primary">SID</span>
+              <span class="ds ds-context">76 contextual predictors</span>
+              <span class="ds ds-context">High-freq dynamic predictors</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">98</span> <span class="model-sub">Valuable for infectious disease forecasting, modeling non-linear relationships, and processing large volumes of data</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">6</td>
+          <td>
+            <span class="aim-tag aim-1">Aim 1</span>
+            <span class="model-name">Mathematical Contagion Model<br>+ Ensemble Adjustment Kalman Filter (EAKF)</span>
+            <span class="model-sub">Dynamical systems approach; Bayesian data assimilation; real-time parameter optimization; epidemic-style forecasting</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-primary">SEDD (attempt data assimilated)</span>
+              <span class="ds ds-primary">SID (attempt data assimilated)</span>
+              <span class="ds ds-988">988 Lifeline (data assimilated?)</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <div><span class="cref">25</span> <span class="model-sub"> Our prior structure simulating suicide ideation</span></div>
+              <div><span class="cref">99</span> <span class="model-sub">Inference algorithm</span></div>
+              <div>
+                <span class="cref">27</span> 
+                <span class="cref">28</span> 
+                <span class="cref">100</span> 
+                <span class="cref">101</span> <span class="model-sub">Similar real-time weather and infectious disease forecasts</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">7</td>
+          <td>
+            <span class="aim-tag aim-1">Aim 1</span>
+            <span class="model-name">Multi-Model Ensemble</span>
+            <span class="model-sub">Combines outputs of statistical, LightGBM, NN, and dynamical models; corrects individual system biases</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-gray">Outputs of models #3–6 above</span>
+              <span class="ds ds-primary">SEDD</span>
+              <span class="ds ds-primary">SID</span>
+              <span class="ds ds-context">76 contextual predictors</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">102</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- AIM 2: CLASSIFICATION — NLP -->
+        <tr class="section-header">
+          <td colspan="4">▸ Aim 2 — Mechanistic Classification: Natural Language Processing</td>
+        </tr>
+
+        <tr>
+          <td class="num">8</td>
+          <td>
+            <span class="aim-tag aim-2">Aim 2</span>
+            <span class="model-name">NLP: Topic Modeling<br>&amp; Supervised Text Classifiers</span>
+            <span class="model-sub">Extracts social isolation, precipitating events, contagion markers from death narratives; F1 ~0.86 reported</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-text">NVDRS-RAD narrative text</span>
+              <span class="ds ds-secondary">NVDRS-RAD circumstances data</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">46</span>
+              <span class="cref">103</span>
+              <span class="cref">105</span> <span class="model-sub">Validating extraction of risk factors like social isolation and context</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">9</td>
+          <td>
+            <span class="aim-tag aim-2">Aim 2</span>
+            <span class="model-name">distilBERT / Compact Large Language Model</span>
+            <span class="model-sub">Transformer-based NLP; detects subtle contextual patterns; replicates annotations ~85%; identifies discrepancies in 38% of discordant cases</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-text">NVDRS-RAD narrative text</span>
+              <span class="ds ds-secondary">NVDRS-RAD circumstances data</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">47</span>
+              <span class="cref">104</span>  <span class="model-sub">Validating extraction of risk factors like social isolation and context</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- AIM 2: CLASSIFICATION — ML -->
+        <tr class="section-header">
+          <td colspan="4">▸ Aim 2 — Mechanistic Classification: Machine Learning Ensemble</td>
+        </tr>
+
+        <tr>
+          <td class="num">10</td>
+          <td>
+            <span class="aim-tag aim-2">Aim 2</span>
+            <span class="model-name">Random Forest (RF)</span>
+            <span class="model-sub">Breiman's bootstrap aggregation; 10-fold cross-validation; ROC-AUC hyperparameter selection; classifies cluster mechanism types</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-secondary">NVDRS-RAD (circumstances + NLP-extracted features)</span>
+              <span class="ds ds-context">76 contextual predictors (county-level linkage)</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">52</span>
+              <span class="cref">53</span>
+              <div> 
+                <span class="cref">54</span>
+                <span class="cref">55</span> <span class="model-sub">Prior superior performance in suicide prediction tasks</span>
+              </div>
+              <div> 
+                <span class="cref">106</span>
+                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+              </div></div>
+              <span class="cref">108</span> <span class="model-sub">Breiman’s bootstrap aggregating framework</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">11</td>
+          <td>
+            <span class="aim-tag aim-2">Aim 2</span>
+            <span class="model-name">XGBoost</span>
+            <span class="model-sub">Gradient tree boosting; scalable; classifies cluster mechanisms; combined into weighted ensemble</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-secondary">NVDRS-RAD (circumstances + NLP-extracted features)</span>
+              <span class="ds ds-context">76 contextual predictors</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <div> 
+                <span class="cref">54</span>
+                <span class="cref">55</span> <span class="model-sub">Prior superior performance in suicide prediction tasks</span>
+              </div>
+              <div> 
+                <span class="cref">106</span>
+                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+              </div></div>
+              <span class="cref">109</span> <span class="model-sub">Optimizing classification accuracy and interpretability</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">12</td>
+          <td>
+            <span class="aim-tag aim-2">Aim 2</span>
+            <span class="model-name">CatBoost</span>
+            <span class="model-sub">Categorical gradient boosting; handles mixed-type features; combined into weighted ensemble</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-secondary">NVDRS-RAD (circumstances + NLP-extracted features)</span>
+              <span class="ds ds-context">76 contextual predictors</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <div> 
+                <span class="cref">106</span>
+                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+              </div>
+            </div>
+            <span class="cite-note">No dedicated CatBoost paper cited in grant. Refs 106–107 cover ensemble ML approach broadly.</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">13</td>
+          <td>
+            <span class="aim-tag aim-2">Aim 2</span>
+            <span class="model-name">Weighted Ensemble<br>(RF + XGBoost + CatBoost)</span>
+            <span class="model-sub">Final classifier; optimizes classification accuracy + interpretability; internal &amp; external validation; temporal holdout (train 2000–2015, test 2016–2023)</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-secondary">NVDRS-RAD (circumstances + NLP features)</span>
+              <span class="ds ds-context">76 contextual predictors</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <div> 
+                <span class="cref">106</span>
+                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+              </div></div>
+              <span class="cref">109</span> <span class="model-sub">Optimizing classification accuracy and interpretability</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- INTERPRETABILITY -->
+        <tr class="section-header">
+          <td colspan="4">▸ Aim 2 — Model Interpretability</td>
+        </tr>
+
+        <tr>
+          <td class="num">14</td>
+          <td>
+            <span class="aim-tag aim-interp">Aim 2 / Interp.</span>
+            <span class="model-name">SHAP Values &amp; Gini Importance</span>
+            <span class="model-sub">Post-hoc feature attribution for tree-based models; identifies which predictors differentiate contagion-driven vs. structural clusters</span>
+          </td>
+          <td>
+            <div class="datasets">
+              <span class="ds ds-secondary">Applied to trained RF, XGBoost, CatBoost models</span>
+              <span class="ds ds-context">All predictors from NVDRS-RAD + contextual set</span>
+            </div>
+          </td>
+          <td>
+            <div class="cites">
+              <span class="cref">110</span>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p style="margin-bottom:8px;">
+      <strong>Dataset key:</strong><br>
+      <b>SEDD</b>: State Emergency Department Databases (HCUP)<br>
+      <b>SID</b>: State Inpatient Databases (HCUP) <br>
+      <b>NVDRS-RAD</b>: National Violent Death Reporting System Restricted Access Database (CDC) <br>
+      <b>76 contextual predictors</b>: assembled from 26 data sources across 4 domains (demographic/environmental, socioeconomic/structural, social/community, individual-level risk factors); includes Census, BRFSS, and other public-use sources <br>
+      <b>Census</b>: population denominators for all county-level analyses
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>
