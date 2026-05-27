@@ -10,6 +10,7 @@
   :root {
     --navy: #0d1b2a;
     --navy-mid: #162436;
+    --navy-pale: #647a97;
     --slate: #1e3a5f;
     --blue-accent: #2d6fa5;
     --steel: #4a7fa5;
@@ -47,7 +48,7 @@
   }
 
   header {
-    background: var(--navy);
+    background: var(--navy-pale);
     color: white;
     padding: 32px 40px;
     border-radius: 10px 10px 0 0;
@@ -73,7 +74,7 @@
 
   /* Legend */
   .legend {
-    background: var(--navy-mid);
+    background: var(--white);
     padding: 16px 40px;
     display: flex;
     gap: 28px;
@@ -83,7 +84,7 @@
 
   .legend-label {
     font-size: 0.72rem;
-    color: #8aadcc;
+    color: #000000;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-right: 6px;
@@ -166,7 +167,7 @@
 
   /* Section header rows */
   tr.section-header td {
-    background: var(--navy);
+    background: var(--navy-pale);
     color: white;
     font-weight: 600;
     font-size: 0.72rem;
@@ -193,6 +194,12 @@
   .aim-1 { background: var(--light-blue); color: var(--slate); }
   .aim-2 { background: var(--purple); color: var(--purple-pale); }
   .aim-interp { background: var(--purple); color: var(--purple-pale); }
+
+  .aim-prelim { background: var(--light-blue); color: var(--slate); }
+  .aim-1 { background: var(--light-blue); color: var(--slate); }
+  .aim-2 { background: var(--light-blue); color: var(--slate); }
+  .aim-interp { background: var(--light-blue); color: var(--slate); }
+
 
   /* Model name */
   .model-name {
@@ -273,8 +280,8 @@
 
   .cref {
     display: inline-block;
-    background: var(--navy);
-    color: white;
+    background: var(--gray-pale);
+    color: rgb(73, 73, 73);
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.69rem;
     font-weight: 500;
@@ -286,6 +293,16 @@
 
   .cref.prelim { background: #5a5aaa; }
   .cref.note { background: var(--red); font-size: 0.65rem; padding: 2px 6px; }
+
+  .cref a {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+  }
+
+  .cref a:hover {
+    text-decoration: underline;
+  }
 
   .cite-note {
     font-size: 0.72rem;
@@ -329,15 +346,15 @@
   <header>
     <h1>Analytical Models & Data Sources</h1>
   </header>
-
   <div class="legend">
     <span class="legend-label" style="margin-left:16px;">Datasets:</span>
-    <span style="font-size:0.72rem; color:#7abcd8;">
-      <span style="background:#2a4a6a;padding:2px 7px;border-radius:4px;">SEDD/SID</span> = ED &amp; Inpatient attempt data &nbsp;
-      <span style="background:#2a4a3a;padding:2px 7px;border-radius:4px;">NVDRS-RAD</span> = Violent death registry &nbsp;
-      <span style="background:#4a3a1a;padding:2px 7px;border-radius:4px;">Contextual</span> = 76-variable set from 26 sources &nbsp;
-      <span style="background:#4a2a6a;padding:2px 7px;border-radius:4px;">Narratives</span> = NVDRS-RAD text data  &nbsp;
-      <span style="background:#6a2a48;padding:2px 7px;border-radius:4px;">988 Lifeline</span> = Lifeline call data
+    <span style="font-size:0.72rem; color:#373737;">
+      <span class="ds ds-primary">SEDD</span> ED attempt data; State Emergency Department Databases (HCUP) <br><br>
+      <span class="ds ds-primary">SID</span> Inpatient attempt data; State Emergency Department Databases (HCUP)<br><br>
+      <span class="ds ds-secondary">NVDRS-RAD</span> Violent death registry;<br><br>
+      <span class="ds ds-context">Contextual</span>  76 contextual predictors</b>: assembled from 26 data sources across 4 domains (demographic/environmental, socioeconomic/structural, social/community, individual-level risk factors); includes Census, BRFSS, and other public-use sources<br><br>
+      <span class="ds ds-text">Narrative</span> NVDRS-RAD qualitative text narratives from original medical examiner, coroner, and law enforcement reports. provide critical context<br><br>
+      <span class="ds ds-988">988 Lifeline</span> Lifeline call data, measures contact volume (calls, texts, and chats), center performance, and response efficiency<br>
     </span>
   </div>
 
@@ -375,9 +392,9 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">2</span>
-              <span class="cref">5</span>
-              <span class="cref">72</span>
+              <span class="cref"><a href="https://doi.org/10.1016/j.jaac.2021.12.012">2</a></span>
+              <span class="cref"><a href="https://doi.org/10.1007/S00127-019-01736-4">5</a></span>
+              <span class="cref"><a href="https://doi.org/10.1016/j.ssmph.2025.101866">72</a></span>
             </div>
           </td>
         </tr>
@@ -397,7 +414,7 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">4</span>
+              <span class="cref"><a href="https://doi.org/10.1093/aje/kwad205">4</a></span>
             </div>
           </td>
         </tr>
@@ -422,14 +439,14 @@
               <span class="ds ds-context">76 contextual predictors</span>
               <span class="ds ds-context">Census / BRFSS</span>
               <span class="ds ds-context">Daily weather / monthly unemployment (high-freq)</span>
-              <span class="ds ds-988">988 Lifeline?</span>
+              <span class="ds ds-988">988 Lifeline</span>
             </div>
           </td>
           <td>
             <div class="cites">
-              <span class="cref">3</span>
-              <span class="cref">26</span>
-              <span class="cref">75</span> <span class="model-sub">Prior use of conditional autoregressive models for suicide risk estimation</span>
+              <span class="cref"><a href="https://doi.org/10.1016/S2468-2667(22)00290-0">3</a></span>
+              <span class="cref"><a href="https://doi.org/10.1371/journal.pcbi.1010945">26</a></span>
+              <span class="cref"><a href="https://doi.org/10.1371/journal.pone.0260931">75</a></span> <span class="model-sub">Prior use of conditional autoregressive models for suicide risk estimation</span>
             </div>
           </td>
         </tr>
@@ -451,7 +468,7 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">97</span> <span class="model-sub">Demonstrated strong performance in time series forecasting</span>
+              <span class="cref"><a href="https://github.com/Microsoft/LightGBM">97</a></span> <span class="model-sub">Demonstrated strong performance in time series forecasting</span>
             </div>
           </td>
         </tr>
@@ -473,7 +490,7 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">98</span> <span class="model-sub">Valuable for infectious disease forecasting, modeling non-linear relationships, and processing large volumes of data</span>
+              <span class="cref"><a href="https://doi.org/10.3390/make5010013">98</a></span> <span class="model-sub">Valuable for infectious disease forecasting, modeling non-linear relationships, and processing large volumes of data</span>
             </div>
           </td>
         </tr>
@@ -487,20 +504,21 @@
           </td>
           <td>
             <div class="datasets">
-              <span class="ds ds-primary">SEDD (attempt data assimilated)</span>
-              <span class="ds ds-primary">SID (attempt data assimilated)</span>
-              <span class="ds ds-988">988 Lifeline (data assimilated?)</span>
+              <span class="ds ds-primary">SEDD (assimilated)</span>
+              <span class="ds ds-primary">SID (assimilated)</span>
+              <span class="ds ds-988">988 Lifeline (assimilated)</span>
             </div>
           </td>
           <td>
             <div class="cites">
-              <div><span class="cref">25</span> <span class="model-sub"> Our prior structure simulating suicide ideation</span></div>
-              <div><span class="cref">99</span> <span class="model-sub">Inference algorithm</span></div>
+              <div><span class="cref"><a href="https://doi.org/10.1126/sciadv.adq4074">25</a></span> <span class="model-sub"> Our prior structure simulating suicide ideation</span></div>
+              <div><span class="cref"><a href="https://doi.org/10.1175/MWR-D-16-0106.1">99</a></span> <span class="model-sub">Inference algorithm</span></div>
               <div>
-                <span class="cref">27</span> 
-                <span class="cref">28</span> 
-                <span class="cref">100</span> 
-                <span class="cref">101</span> <span class="model-sub">Similar real-time weather and infectious disease forecasts</span>
+                
+                <span class="cref"><a href="https://doi.org/10.1038/ncomms3837">27</a></span> 
+                <span class="cref"><a href="https://doi.org/10.1038/ncomms14592">28</a></span> 
+                <span class="cref"><a href="https://doi.org/10.1175/MWR-D-16-0106.1">100</a></span> 
+                <span class="cref"><a href="https://doi.org/10.1256/QJ.05.135">101</a></span> <span class="model-sub">Similar real-time weather and infectious disease forecasts</span>
               </div>
             </div>
           </td>
@@ -523,7 +541,7 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">102</span>
+              <span class="cref"><a href="https://doi.org/10.1371/journal.pcbi.1007486">102</a></span><span class="model-sub">Accuracy of Flu ensemble forecasts</span>
             </div>
           </td>
         </tr>
@@ -548,9 +566,9 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">46</span>
-              <span class="cref">103</span>
-              <span class="cref">105</span> <span class="model-sub">Validating extraction of risk factors like social isolation and context</span>
+              <span class="cref"><a href="https://arxiv.org/pdf/2506.15030">46</a></span>
+              <span class="cref"><a href="https://doi.org/10.1038/s43856-024-00631-7">103</a></span>
+              <span class="cref"><a href="https://doi.org/10.1093/jamia/ocad068">105</a></span> <span class="model-sub">Validating extraction of risk factors like social isolation and context</span>
             </div>
           </td>
         </tr>
@@ -570,8 +588,8 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">47</span>
-              <span class="cref">104</span>  <span class="model-sub">Validating extraction of risk factors like social isolation and context</span>
+              <span class="cref"><a href="https://doi.org/10.2196/68212">47</a></span>
+              <span class="cref"><a href="https://arxiv.org/pdf/2508.18541v2">104</a></span>  <span class="model-sub">Validating extraction of risk factors like social isolation and context</span>
             </div>
           </td>
         </tr>
@@ -596,17 +614,17 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">52</span>
-              <span class="cref">53</span>
+              <span class="cref"><a href="https://doi.org/10.1016/j.eclinm.2020.100281">52</a></span>
+              <span class="cref"><a href="https://doi.org/10.1186/1471-244X-14-76">53</a></span>
               <div> 
-                <span class="cref">54</span>
-                <span class="cref">55</span> <span class="model-sub">Prior superior performance in suicide prediction tasks</span>
+                <span class="cref"><a href="https://doi.org/10.3390/ijerph17165929">54</a></span>
+                <span class="cref"><a href="https://doi.org/10.1016/j.jad.2018.11.073">55</a></span> <span class="model-sub">Prior superior performance in suicide prediction tasks</span>
               </div>
               <div> 
-                <span class="cref">106</span>
-                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+                <span class="cref"><a href="https://doi.org/10.3389/fpsyt.2024.1291362">106</a></span>
+                <span class="cref"><a href="https://doi.org/10.1186/S12911-024-02524-0">107</a></span> <span class="model-sub">Ensemble methods</span>
               </div></div>
-              <span class="cref">108</span> <span class="model-sub">Breiman’s bootstrap aggregating framework</span>
+              <span class="cref"><a href="https://doi.org/10.1023/A:1010933404324">108</a></span> <span class="model-sub">Breiman’s bootstrap aggregating framework</span>
             </div>
           </td>
         </tr>
@@ -627,14 +645,14 @@
           <td>
             <div class="cites">
               <div> 
-                <span class="cref">54</span>
-                <span class="cref">55</span> <span class="model-sub">Prior superior performance in suicide prediction tasks</span>
+                <span class="cref"><a href="https://doi.org/10.3390/ijerph17165929">54</a></span>
+                <span class="cref"><a href="https://doi.org/10.1016/j.jad.2018.11.073">55</a></span> <span class="model-sub">Prior superior performance in suicide prediction tasks</span>
               </div>
               <div> 
-                <span class="cref">106</span>
-                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+                <span class="cref"><a href="https://doi.org/10.3389/fpsyt.2024.1291362">106</a></span>
+                <span class="cref"><a href="https://doi.org/10.1186/S12911-024-02524-0">107</a></span> <span class="model-sub">Ensemble methods</span>
               </div></div>
-              <span class="cref">109</span> <span class="model-sub">Optimizing classification accuracy and interpretability</span>
+              <span class="cref"><a href="https://doi.org/10.1145/2939672.2939785">109</a></span> <span class="model-sub">XGBoost tree boosting</span>
             </div>
           </td>
         </tr>
@@ -655,11 +673,10 @@
           <td>
             <div class="cites">
               <div> 
-                <span class="cref">106</span>
-                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+                <span class="cref"><a href="https://doi.org/10.3389/fpsyt.2024.1291362">106</a></span>
+                <span class="cref"><a href="https://doi.org/10.1186/S12911-024-02524-0">107</a></span>  <span class="model-sub">Ensemble methods</span> <br>
+                <span class="cref"><a href="https://doi.org/10.48550/arXiv.1810.11363">CatBoost</a></span> <span class="model-sub">CatBoots Manuscript</span>
               </div>
-            </div>
-            <span class="cite-note">No dedicated CatBoost paper cited in grant. Refs 106–107 cover ensemble ML approach broadly.</span>
           </td>
         </tr>
 
@@ -679,10 +696,10 @@
           <td>
             <div class="cites">
               <div> 
-                <span class="cref">106</span>
-                <span class="cref">107</span> <span class="model-sub">Ensemble methods</span>
+                <span class="cref"><a href="https://doi.org/10.3389/fpsyt.2024.1291362">106</a></span>
+                <span class="cref"><a href="https://doi.org/10.1186/S12911-024-02524-0">107</a></span> <span class="model-sub">Ensemble methods</span>
               </div></div>
-              <span class="cref">109</span> <span class="model-sub">Optimizing classification accuracy and interpretability</span>
+              <span class="cref"><a href="https://doi.org/10.1145/2939672.2939785">109</a></span> <span class="model-sub">Optimizing classification accuracy and interpretability</span>
             </div>
           </td>
         </tr>
@@ -707,7 +724,7 @@
           </td>
           <td>
             <div class="cites">
-              <span class="cref">110</span>
+              <span class="cref"><a href="https://doi.org/10.7717/peerj-cs.2051">110</a></span> <span class="model-sub">Ensemble machine learning for Inmate suicidal behavior</span>
             </div>
           </td>
         </tr>
@@ -715,17 +732,6 @@
       </tbody>
     </table>
   </div>
-
-  <footer>
-    <p style="margin-bottom:8px;">
-      <strong>Dataset key:</strong><br>
-      <b>SEDD</b>: State Emergency Department Databases (HCUP)<br>
-      <b>SID</b>: State Inpatient Databases (HCUP) <br>
-      <b>NVDRS-RAD</b>: National Violent Death Reporting System Restricted Access Database (CDC) <br>
-      <b>76 contextual predictors</b>: assembled from 26 data sources across 4 domains (demographic/environmental, socioeconomic/structural, social/community, individual-level risk factors); includes Census, BRFSS, and other public-use sources <br>
-      <b>Census</b>: population denominators for all county-level analyses
-    </p>
-  </footer>
 
 </div>
 </body>
