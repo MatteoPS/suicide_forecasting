@@ -13,3 +13,5 @@
 │   └── statistical/ # Bayesian hierarchical models; spatial smoothing; temporal integration   
 └── test/            # Unit and integration tests for src/ modules
 ```
+
+https://github.com/MatteoPS/suicide_forecasting/blob/main/docs/AFSP_models_table.html
