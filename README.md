@@ -14,4 +14,4 @@
 └── test/            # Unit and integration tests for src/ modules
 ```
 
-https://github.com/MatteoPS/suicide_forecasting/blob/main/docs/AFSP_models_table.html
+[https://github.com/MatteoPS/suicide_forecasting/blob/main/docs/AFSP_models_table.html](https://matteops.github.io/suicide_forecasting/docs/AFSP_models_table.html)
