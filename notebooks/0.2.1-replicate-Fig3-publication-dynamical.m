@@ -1,4 +1,4 @@
-%% figure3_final_posting_copy.m
+% figure3_final_posting_copy.m
 
 %%%  RUN STOCHASTICALLY  
 
