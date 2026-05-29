@@ -1,8 +1,11 @@
+% figure4_final_posting_copy.m
+
 %%%  RUN STOCHASTICALLY  
 
 %%%  dB/dt=bN-λ_1*B+μI-αB-dB
 %%%  dI/dt=λ_1*B-μI+αB-λ_2*I-dI
 %%%  dR/dt=-κR+λ_2*I 
+
 
 OEVCALLS=[100];    
 OEVDEATHS=[100];
@@ -10,39 +13,37 @@ iterjc=['vars'];
 eakfjd=['ALL'];
 TAUR=[5];
 taures=['tau5resamp']; 
-wkst=75;
-SM=[4];
-    
+wkst=65;
+SM=[0];   
+
 ilptimes=20;
 for ilp=1:ilptimes
 
-load us_deaths_weekly_2013-14_noseas
-load dlycalls13_14_notrend
 
-dcalls=c13_14_dt;
-dcalls=[NaN;NaN;dcalls]; %% Sunday is 12/30/12; Adding that in to
-                         %% have days align
-dcalls=dcalls(8:730); %% First week Sunday is 1/6/13                        
-wdeaths=wkdeaths_2013_14_notrend;
+load data/external/ShamanEtAl/us_deaths_weekly_2017-18_noseas
+load data/external/ShamanEtAl/dlycalls17_18_notrend
+
+dcalls=c17_18_dt;
+wdeaths=wsa1(1:104);
 wdeaths(1)=mean(wdeaths(2:5));wdeaths(102:104)=wdeaths(99:101);
 
-%%%  Shifting the days--moving the Monday event to Friday
-%%%  Changing weeks by averaging
+%%%  Shifting the days
 
-dcalls=c13_14_dt;
-dcalls=[NaN;NaN;dcalls];
-dcalls=dcalls(8-SM:728-SM); %% First week Wednesday is 1/2/13                        
+dcalls=c17_18_dt;
+dcalls=dcalls(8-SM:728-SM);                       
 wcalls=squeeze(sum(reshape(dcalls,7,103)))';
 ww=(SM*wdeaths(1:103,1)+(7-SM)*wdeaths(2:104,1))/7;
 wdeaths=[ww(1,1);ww(1:102,1)];
 
 wkly=[wdeaths wcalls];
-wklylin=wkly(1:80,:);
+wkly=[wkly;wkly(103,:)];
 
 %%%%%%%%%%%%%%%%
-%%% Starting from Week wkst+1
+%%% Starting from Week 74 and running inference through Week
+%%% 104
 
-wklynlin=wkly(wkst+1:103,:);
+wklynlin=wkly(wkst+1:104,:);  %% Into wkst+1 week
+
 
 %%%%  Define the mapping operator H s.t. H*state returns the state-predicted OBS
 %%%%  HH is the number of variables and parameters in state space
@@ -57,7 +58,7 @@ clear So
 num_ens=500;
 rnd=rand(16,500);
 
-N=318000000;
+N=327000000;
 So(1,:)=N*ones(1,500);
 So(3,:)=10e6+round(10e6*rnd(3,:));   %Ideation 
 So(4,:)=1500+round(500*rnd(4,:));  %  Cumulative/Effective/Memory of Removed
@@ -70,15 +71,15 @@ So(8,:)=2.7e-5;  %  d death - should reduce by 4e-5*I/N so
 So(11,:)=0.0001+0.00015*rnd(9,:);  % beta contagion ideation contact rate w/ideators
 So(12,:)=0.3*rnd(10,:);  % epsilon contagion ideation contact rate w/deaths
 So(13,:)=0.3*rnd(11,:);  % tau contagion completion contact rate w/deaths
+
 So(9,:)=0.0049;  % mu rate of loss of ideation
 So(10,:)=0.00025;  %  alpha rate of gain of ideation
-So(14,:)=6.71e-6;  % gamma 'background' rate of I-->R 
+So(14,:)=7.38e-6;  % gamma 'background' rate of I-->R 
 So(15,:)=0.0667;  % kappa memory loss rate
-So(16,:)=0.000142;
+So(16,:)=0.000238;
 
 %%% Having initialized, now integrate and update with iterative
-%%% cycles to some tolerance for blocks of time (wkcnt), then move
-%%% to next block of time and repeat
+%%% cycles, then move to next block of time and repeat
 
 num_times=20;
 xprior=NaN(16,num_ens,num_times);
@@ -92,13 +93,17 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
     tt
     cntr=0; tol=1;
 
-    while cntr<10
+    while cntr<10 
         cntr=cntr+1;
         if cntr==1
             [tt cntr tol]
         else
             [tt cntr tol]
             [wkly(wkcnt*(tt-1)+tlp,i) prior_mean]
+            if isnan(prior_mean)
+                'Hohoho'
+                pause
+            end
         end
         
         %% Random re-initialization
@@ -115,6 +120,7 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
                 So(2,ix)=N-So(4,rit)-So(3,rit);
                 So(5,ix)=round(400*rnd(5,rit)); %% Instantaneous removed
                 So(6,ix)=round(4000*rnd(6,rit)); %% Instantaneous calls
+                                                 %So(9,ix)=0.03*rnd(9,rit);
                 So(11,ix)=0.015*rnd(9,rit);  % beta contagion ideation contact rate w/ideators
                 So(12,ix)=150*rnd(10,rit);  % epsilon contagion ideation contact rate w/deaths
                 So(13,ix)=TAUR*rnd(11,rit);  % tau contagion completion contact rate w/deaths
@@ -169,6 +175,7 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
                         So(2,i)=N-So(4,i)-So(3,i);
                         So(5,i)=round(400*rand(1)); %% Instantaneous removed
                         So(6,i)=round(4000*rand(1)); %% Instantaneous calls
+                                                     %So(9,i)=0.03*rand(1);
                         So(11,i)=0.015*rand(1);  % beta contagion ideation contact rate w/ideators
                         So(12,i)=150*rand(1);  % epsilon contagion ideation contact rate w/deaths
                         So(13,i)=TAUR*rand(1);  % tau contagion completion contact rate w/deaths
@@ -206,8 +213,10 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
             %%%  Loop through observations 
 
             lambda=1.1;
+
             if rem(cntr,2)==1
             for i=2:-1:1   %%% Loop 
+
                 inflt=ones(1,16);
                 xmn=mean(Xr')';
                 xmn=xmn.*inflt';
@@ -243,7 +252,7 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
                     post_var=0;
                 end
                 oy=rcond(1/prior_var+1/ovar);
-                
+
                 prior_mean = mean(H*x);
                 post_mean = post_var*(prior_mean/prior_var + wklynlin(wkcnt*(tt-1)+tlp,i)/ovar);
                 
@@ -263,7 +272,7 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
                 
                 if i==1
                     %%%  Get the new ensemble and save prior and
-                    %%%  posterior
+                    %%%  posterior--ONLY NONLINEAR PARAMETERS
                     
                     xnew=x;
                     xnew(11:13,:) = x(11:13,:) + dx(11:13,:);
@@ -286,6 +295,7 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
         
             else
                 for i=1:2  %%% Loop 
+
                 inflt=ones(1,16);
                 xmn=mean(Xr')';
                 xmn=xmn.*inflt';
@@ -362,8 +372,6 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
                 end
             end   % End DA loop of 2 observations
          
-                
-                
             end
             
             xpost2(:,:,wkcnt*(tt-1)+tlp,cntr)=xnew;
@@ -398,6 +406,7 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
             
         end     
              
+             
         for iaph=1:num_ens
             aph=[So(1:6,iaph)]';
             if aph(2)/aph(1)<0.5 | sum(aph(3:4))>N | aph(5)>0.1*N ...
@@ -413,13 +422,13 @@ for tt = 1:num_times/wkcnt  %% given in blocks of weeks
                 So(13,iaph)=TAUR*rand(1);  % tau contagion completion contact rate w/deaths
             end
         end
-
+ 
         [mSo(1:6) mean(So(1:6,:)')' max(So(1:6,:)')' min(So(1:6,:)')']
 
-    end  %%% End of 10 or defined number of iterations
+    end  %%% End of 10 iterations
 
     
-    if tt<num_times
+    if tt>num_times
         tSo=xnew(1:6,:);
         mSo=mean(tSo')';
         rndn=randn(16,500);
@@ -439,7 +448,7 @@ end
             
 Xpost(ilp,:,:,:)=shiftdim(xpost,1);
             
-save RW_super_ens_Xpost_mu0p0049_finalfig3 Xpost
+%save KSAB_super_ens_Xpost_mu0p0049_finalfig4 Xpost
 ilp
 if ilp<ilptimes
     clearvars -except Xpost ilptimes ilp OEVCALLS OEVDEATHS iterjc eakfjd TAUR taures wkst SM 
@@ -460,7 +469,7 @@ ubpost=mpost+2*spost;
 
 %%%  Final Form Figures
 
-dt=datenum('jan-6-2013'); dts=dt+(wkst)*7-SM; %% Synching date CORRECTLY to beginning of week
+dt=datenum('jan-8-2017'); dts=dt+(wkst)*7-SM; %% Synching date CORRECTLY to beginning of week
 tmm=dts+6:7:dts+6+7*19; %% +6 Puts to week ENDING DATE
 dtss=tmm(1);
 figure(20)
@@ -484,11 +493,9 @@ set(gca,'XTick',tickLocations)
 datetick('x','mmm dd, yyyy','keepticks','keeplimits')
 hold off
 oyu=[ubpost(:,i+10)]; oyu=max(max(oyu)); oyu=1.2*oyu;
-%xlabel('Weeks')
 if i==1
     title('\beta - Baseline Contact with Ideators')    
     axis([min(tmm) max(tmm) 0 oyu])
-    %    legend('Posterior')
 elseif i==2
     title('\epsilon - Baseline Contact with Memory of Deaths')
     axis([min(tmm) max(tmm) 0 oyu])
@@ -506,9 +513,14 @@ xtickangle(0)
 box off
 end
 
+%savefig('mainfigure4B.fig')
+%saveas(gcf,'mainfigure4B','epsc')
+%saveas(gcf,'mainfigure4B','png') 
+%saveas(gcf,'mainfigure4B','pdf')
 
-dt=datenum('jan-6-2013'); dts=dt+(wkst)*7-SM; %% Synching date CORRECTLY to beginning of week
-tmm=dts+6:7:dts+6+7*19; %% +6 Puts to week ENDING DATE
+
+dt=datenum('jan-8-2017'); dts=dt+(wkst)*7-SM; %% Synching date CORRECTLY to beginning of week
+tmm=dts+6:7:dts+6+7*19; %% +6 Puts label to week ENDING DATE 
 dtss=tmm(1);
 figure(21)
 set(gcf,'PaperPosition',[0.5 0.5 7.5 10])
@@ -519,7 +531,6 @@ set(gca,'Ticklength',[0.01,0.01]);
 xtickangle(0)
 box off
 colors=[215,48,39,255; 252,141,89,255; 145,191,219,255; 69,117,180,255]/255;
-%set(gcf,'Position',[100,100,600,800])
 for i=1:4
 subplot(4,1,i)
 plot(tmm,mpost(:,i+2),'b','Linewidth',1.5,'Color',colors(i,:)); hold on
@@ -561,12 +572,3 @@ xtickangle(0)
 box off
 end
 
-
-savefig('chkmainfigure3A.fig')
-saveas(gcf,'chkmainfigure3A','epsc')
-saveas(gcf,'chkmainfigure3A','png') 
-saveas(gcf,'chkmainfigure3A','pdf')
-
-
-
- 
