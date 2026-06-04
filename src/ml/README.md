@@ -16,3 +16,5 @@
 
 - ### Neural Networks
   and other [Global Forecasting Models](https://unit8co.github.io/darts/userguide/covariates.html#global-forecasting-models-gfms) in DARTS
+  
+  to check: "Temporal Convolutional Network (TCN)"
