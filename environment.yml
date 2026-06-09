@@ -1,0 +1,19 @@
+# run the following after every new package installation:
+# conda env export --from-history > environment.yml
+
+name: suicide_forecast
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - statsmodels
+  - numpy[version='<2']
+  - pandas
+  - scipy
+  - matplotlib
+  - lightgbm
+  - seaborn
+  - ipykernel
+  - requests
+  - u8darts-all
+prefix: /opt/homebrew/Caskroom/miniconda/base/envs/suicide_forecast
