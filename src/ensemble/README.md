@@ -1,5 +1,5 @@
 # Ensemble
 
-Multi-model combination logic
-weighted averaging
-scoring rules
+- Multi-model combination logic
+- weighted averaging
+- scoring rules
