@@ -2,7 +2,8 @@ paths:
   raw:
     sid: 
     sedd: 
-    nvdrs_rad: 
+    nvdrs: "data/raw/keyes_973_nvdrs_2023.csv"
+    nvdrs_narratives: "data/raw/keyes_973_nvdrs_2023_narratives.csv"
   processed:
     features: 
     outcomes: 
@@ -12,19 +13,19 @@ paths:
     climate: 
     housing: 
 
-columns:
-  county_id: 
-  state_id: 
-  zip_id: 
-  date: 
-  outcome_attempts: 
-  outcome_deaths: 
+#columns:
+#  county_id: 
+#  state_id: 
+#  zip_id: 
+#  date: 
+#  outcome_attempts: 
+#  outcome_deaths: 
 
-date_range:
-  start: 
-  end: 
+#date_range:
+#  start: 
+#  end: 
 
-geographic_levels:
-  primary: 
-  secondary:
+#geographic_levels:
+#  primary: 
+#  secondary:
     
