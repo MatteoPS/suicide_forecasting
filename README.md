@@ -11,8 +11,8 @@
 │   ├── ensemble/    # Multi-model combination logic; weighted averaging; scoring rules
 │   ├── ml/          # LightGBM, RF, XGBoost, CatBoost, NN training and evaluation      
 │   ├── nlp/         # distilBERT pipelines; NVDRS-RAD narrative processing
-│   └── statistical/ # Bayesian hierarchical models; exponetial smoothing; ARIMA, CAR   
-└── test/            # Unit and integration tests for src/ modules
+│   └── statistical/ # Bayesian hierarchical models; exponetial smoothing; ARIMA; CAR-ANOVA   
+└── test/            
 ```
 
 ## Datasets
