@@ -5,13 +5,13 @@
 ├── data/ 
 │   └── raw          # All data — this is gitignored
 ├── docs/            # Project documentation and data access instructions
-├── notebooks/       # Exploratory and communicative work — not production code     
-├── src/             # All production-grade code
+├── notebooks/       # Exploratory and communicative work  
+├── src/             
 │   ├── dynamical/   # Dynamic model of suicide contagion       
 │   ├── ensemble/    # Multi-model combination logic; weighted averaging; scoring rules
 │   ├── ml/          # LightGBM, RF, XGBoost, CatBoost, NN training and evaluation      
 │   ├── nlp/         # distilBERT pipelines; NVDRS-RAD narrative processing
-│   └── statistical/ # Bayesian hierarchical models; spatial smoothing; temporal integration   
+│   └── statistical/ # Bayesian hierarchical models; exponetial smoothing; ARIMA, CAR   
 └── test/            # Unit and integration tests for src/ modules
 ```
 
