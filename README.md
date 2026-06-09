@@ -1,18 +1,22 @@
 ## Repo Structure
 ```text
 .
-├── config/          # Model configs, hyperparameters, YAML files
-├── data/ 
-│   └── raw          # All data — this is gitignored
-├── docs/            # Project documentation and data access instructions
-├── notebooks/       # Exploratory and communicative work  
-├── src/             
-│   ├── dynamical/   # Dynamic model of suicide contagion       
-│   ├── ensemble/    # Multi-model combination logic; weighted averaging; scoring rules
-│   ├── ml/          # LightGBM, RF, XGBoost, CatBoost, NN training and evaluation      
-│   ├── nlp/         # distilBERT pipelines; NVDRS-RAD narrative processing
-│   └── statistical/ # Bayesian hierarchical models: exponential smoothing; ARIMA; CAR-ANOVA   
-└── test/            
+├── config/            # Model configs, hyperparameters, YAML files
+├── data/
+│   ├── external/
+│   ├── processed/
+│   └── raw            # All data — this is gitignored
+├── docs/              # Project documentation and data access instructions
+├── notebooks/         # Exploratory and communicative work  
+├── src/ 
+│   ├── data           # Data import, cleaning, transform
+│   ├── dynamic/       # Dynamic model of suicide contagion       
+│   ├── ensemble/      # Multi-model combination logic; weighted averaging; scoring rules
+│   ├── ml/            # LightGBM, RF, XGBoost, CatBoost, NN training and evaluation      
+│   ├── nlp/           # distilBERT pipelines; NVDRS-RAD narrative processing
+│   ├── statistical/   # Bayesian hierarchical models: Exponential Smoothing; ARIMA; CAR-ANOVA
+│   └── utils/   
+└── tests/           
 ```
 
 ## Datasets
