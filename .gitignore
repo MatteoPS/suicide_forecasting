@@ -1,10 +1,20 @@
-data/raw
+# Environment variables
+.env
+
+# IDE / Editor
+.vscode/
+
+# Python
+__pycache__/
+
+# Data
+data/raw/
 *.csv
 *.xlsx
 *.pkl
-~*
-.env
-__pycache__/
-.DS_Store
-.vscode/
 
+# Temporary / Backup files
+~*
+
+# OS files
+.DS_Store
