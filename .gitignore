@@ -19,6 +19,6 @@ data/raw/
 # OS files
 .DS_Store
 
-# Dynamical model scripts
+# Dynamical model .m and .mat
 notebooks/*.m
 data/external/
