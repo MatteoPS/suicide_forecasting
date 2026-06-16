@@ -2,7 +2,7 @@
 .env
 
 # IDE / Editor
-.vscode/
+.vscode
 
 # Python
 __pycache__/
