@@ -3,7 +3,9 @@ import pandas as pd
 import requests
 import glob
 from dotenv import load_dotenv
-from src.utils.config import get_data_path
+from src.utils.config import get_data_path 
+import re
+import redivis
 
 def load_nvdrs(file_key: str, data_folder: str, nrows: int = None) -> pd.DataFrame:
     """Loads the primary NVDRS dataset, handling Windows encoding."""
@@ -88,3 +90,45 @@ def load_census(variables_dict: dict, years: list, geo_level: str = "county", st
     df_final = pd.concat(all_data, ignore_index=True)
     df_final.rename(columns=variables_dict, inplace=True)
     return df_final
+
+
+
+def build_hcup_sql(dataset, state_abbr, db_type, years, desired_cols, filter_cols, filter_condition):
+    """Constructs the SQL query string for Redivis dynamically."""
+    target_tables = []
+    year_pattern = "|".join(years)
+    for t in dataset.list_tables():
+        name = t.name.upper()
+        if state_abbr.upper() in name and db_type.upper() in name and "CORE" in name:
+            if re.search(year_pattern, name):
+                target_tables.append(t)
+
+    common_columns = None
+    for t in target_tables:
+        cols = {v.name.upper() for v in t.list_variables()}
+        common_columns = cols if common_columns is None else common_columns.intersection(cols)
+
+    final_cols = [c for c in desired_cols if c.upper() in common_columns]
+    col_string = ", ".join(final_cols)
+
+    sql_parts = [f"SELECT {col_string} FROM `{t.qualified_reference}`" for t in target_tables]
+    union_query = "\nUNION ALL\n".join(sql_parts)
+
+    valid_filter_cols = [c for c in filter_cols if c.upper() in common_columns]
+    where_statements = [f"{col} {filter_condition}" for col in valid_filter_cols]
+    where_clause = " OR \n    ".join(where_statements)
+
+    return f"""
+    WITH stacked_data AS (
+    {union_query}
+    )
+    SELECT * FROM stacked_data
+    WHERE {where_clause};
+    """
+
+def extract_hcup_data(state_full, state_abbr, db_type, years, desired_cols, filter_cols, filter_condition):
+    """Generates the query and executes it against the Redivis API."""
+    from src.utils.config import ORGNAME
+    dataset = redivis.organization(ORGNAME).dataset(state_full)
+    final_sql = build_hcup_sql(dataset, state_abbr, db_type, years, desired_cols, filter_cols, filter_condition)
+    return redivis.query(final_sql).to_pandas_dataframe()
