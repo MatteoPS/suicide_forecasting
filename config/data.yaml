@@ -8,11 +8,6 @@ paths:
   processed:
     features: 
     outcomes: 
-  external:
-    census: 
-    brfss: 
-    climate: 
-    housing: 
 
 #columns:
 #  county_id: 
