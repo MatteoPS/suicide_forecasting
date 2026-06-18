@@ -2,10 +2,8 @@ import os
 import pandas as pd
 import requests
 import glob
-from dotenv import load_dotenv
-from src.utils.config import get_data_path 
+from src.utils.config import get_data_path, CENSUS_API_KEY, BRFSS_PATH
 import re
-import redivis
 
 def load_nvdrs(file_key: str, data_folder: str, nrows: int = None) -> pd.DataFrame:
     """Loads the primary NVDRS dataset, handling Windows encoding."""
@@ -25,8 +23,12 @@ def load_nvdrs(file_key: str, data_folder: str, nrows: int = None) -> pd.DataFra
 def load_brfss(year, brfss_path: str = None) -> pd.DataFrame:
     """Loads BRFSS data for a specific year, flagging if versioned files exist."""
     if not brfss_path:
-        load_dotenv()
-        brfss_path = os.getenv("BRFSS_PATH")
+        brfss_path = BRFSS_PATH
+    else:
+        print(f"loading from {brfss_path} folder")
+    
+    if not brfss_path:
+        raise ValueError("BRFSS_PATH is missing. Specify it in your .env file or pass it directly to the function `load_brfss(year, brfss_path`.")   
         
     base_file = os.path.join(brfss_path, f"LLCP{year}.XPT")
     version_files = glob.glob(os.path.join(brfss_path, f"LLCP{year}V*.XPT"))
@@ -39,17 +41,14 @@ def load_brfss(year, brfss_path: str = None) -> pd.DataFrame:
         
     return pd.read_sas(base_file, format='xport')
 
-def load_census(variables_dict: dict, years: list, geo_level: str = "county", states="*" ) -> pd.DataFrame:
+def fetch_census(variables_dict: dict, years: list, geo_level: str = "county", states="*" ) -> pd.DataFrame:
     """
     Fetches Census ACS 5-Year Data Profiles.
     geo_level: 'county' or 'state'
     states: '*' (all), a single FIPS string (e.g., '36'), or a list of FIPS strings (e.g., ['36', '34'])
     """
-    load_dotenv()
-    api_key = os.getenv("CENSUS_API_KEY")
-    
-    if not api_key:
-        raise ValueError("CENSUS_API_KEY not found in .env file.")
+    api_key = CENSUS_API_KEY
+
 
     # Convert list of states to comma-separated string for the API
     if isinstance(states, list):
@@ -91,44 +90,74 @@ def load_census(variables_dict: dict, years: list, geo_level: str = "county", st
     df_final.rename(columns=variables_dict, inplace=True)
     return df_final
 
+def fetch_hcup(catalog, state_name, db_type, years, cols_to_pull, icd_prefix, icd_vals):
 
-
-def build_hcup_sql(dataset, state_abbr, db_type, years, desired_cols, filter_cols, filter_condition):
-    """Constructs the SQL query string for Redivis dynamically."""
-    target_tables = []
-    year_pattern = "|".join(years)
-    for t in dataset.list_tables():
-        name = t.name.upper()
-        if state_abbr.upper() in name and db_type.upper() in name and "CORE" in name:
-            if re.search(year_pattern, name):
-                target_tables.append(t)
-
-    common_columns = None
-    for t in target_tables:
-        cols = {v.name.upper() for v in t.list_variables()}
-        common_columns = cols if common_columns is None else common_columns.intersection(cols)
-
-    final_cols = [c for c in desired_cols if c.upper() in common_columns]
-    col_string = ", ".join(final_cols)
-
-    sql_parts = [f"SELECT {col_string} FROM `{t.qualified_reference}`" for t in target_tables]
-    union_query = "\nUNION ALL\n".join(sql_parts)
-
-    valid_filter_cols = [c for c in filter_cols if c.upper() in common_columns]
-    where_statements = [f"{col} {filter_condition}" for col in valid_filter_cols]
-    where_clause = " OR \n    ".join(where_statements)
-
-    return f"""
-    WITH stacked_data AS (
-    {union_query}
+    dataset_ref = catalog.datasets[catalog.datasets["Dataset_Name"].str.contains(state_name, case=False)]["Reference"].iloc[0]
+    # 1. Fetch tables from the local cache
+    df_tables = catalog.get_tables(dataset_ref)
+    
+    # Filter tables using pandas string matching
+    year_pattern = "|".join([str(y) for y in years])
+    mask = (
+        df_tables["Table_Name"].str.contains(db_type, case=False) &
+        df_tables["Table_Name"].str.contains("CORE", case=False) &
+        df_tables["Table_Name"].str.contains(year_pattern, flags=re.IGNORECASE, regex=True)
     )
-    SELECT * FROM stacked_data
-    WHERE {where_clause};
-    """
+    target_tables = df_tables[mask]
 
-def extract_hcup_data(state_full, state_abbr, db_type, years, desired_cols, filter_cols, filter_condition):
-    """Generates the query and executes it against the Redivis API."""
-    from src.utils.config import ORGNAME
-    dataset = redivis.organization(ORGNAME).dataset(state_full)
-    final_sql = build_hcup_sql(dataset, state_abbr, db_type, years, desired_cols, filter_cols, filter_condition)
-    return redivis.query(final_sql).to_pandas_dataframe()
+    if target_tables.empty:
+        return "No tables matched your criteria."
+
+    # 2. Fetch variables from cache and build master list
+    table_vars = {}
+    master_icd_cols = set()
+
+    for _, row in target_tables.iterrows():
+        t_ref = row["Reference"]
+        
+        # Fetch from local schema cache
+        df_vars = catalog.get_variables(dataset_ref, t_ref)
+        vars_in_table = df_vars["Variable"].str.upper().tolist()
+        
+        table_vars[t_ref] = vars_in_table
+        
+        icd_in_table = [v for v in vars_in_table if v.startswith(icd_prefix.upper())]
+        master_icd_cols.update(icd_in_table)
+
+    master_icd_cols = sorted(list(master_icd_cols))
+    master_schema = [c.upper() for c in cols_to_pull] + master_icd_cols
+
+    # --- DIRECT REGEX FORMATTING (SAFE) ---
+    regex_pattern = r"^(" + "|".join([str(x) for x in icd_vals]) + ")"
+
+    # 3. Build SQL
+    sql_parts = []
+    for _, row in target_tables.iterrows():
+        t_ref = row["Reference"]
+        
+        # Reconstruct the full BigQuery reference string manually
+        qualified_ref = f"{catalog.org_name}.{dataset_ref}.{t_ref}"
+        
+        vars_in_table = table_vars[t_ref]
+        
+        select_elements = []
+        for col in master_schema:
+            if col in vars_in_table:
+                select_elements.append(col)
+            else:
+                select_elements.append(f"NULL AS {col}")
+        
+        select_clause = ", ".join(select_elements)
+        
+        valid_table_icds = [c for c in master_icd_cols if c in vars_in_table]
+        where_conditions = [f"REGEXP_CONTAINS({col}, r'{regex_pattern}')" for col in valid_table_icds]
+        where_clause = " OR \n    ".join(where_conditions)
+
+        query = f"SELECT {select_clause} \nFROM `{qualified_ref}` \nWHERE {where_clause}"
+        sql_parts.append(query)
+    sql_string= "\nUNION ALL\n".join(sql_parts)
+
+    # Execute the SQL query via the Redivis API
+    df_out = catalog.org.dataset(dataset_ref).query(sql_string).to_pandas_dataframe()
+
+    return df_out, sql_string
