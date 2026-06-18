@@ -2,33 +2,33 @@ import os
 import pandas as pd
 import requests
 import glob
+from typing import Literal
 from src.utils.config import get_data_path, CENSUS_API_KEY, BRFSS_PATH
 import re
 
-def load_nvdrs(file_key: str, data_folder: str, nrows: int = None) -> pd.DataFrame:
-    """Loads the primary NVDRS dataset, handling Windows encoding."""
+def load_nvdrs(file_key: str, data_folder: str, nrows: int | None = None) -> pd.DataFrame:
+    """Loads the NVDRS dataset from local storage, handling Windows encoding."""
     nvdrs_path = get_data_path(file_key, data_folder)
     
-    # Add the encoding parameter here
     df = pd.read_csv(
         nvdrs_path, 
         encoding="cp1252", 
-        encoding_errors="replace", #if files have some encoding issues, this will replace problematic characters instead of throwing an error
-        low_memory=False,  # for large files
-        nrows=nrows  # to limit the number of rows read
+        encoding_errors="replace", # Replaces problematic characters instead of crashing
+        low_memory=False, 
+        nrows=nrows 
     )
-    
     return df
 
-def load_brfss(year, brfss_path: str = None) -> pd.DataFrame:
-    """Loads BRFSS data for a specific year, flagging if versioned files exist."""
+def load_brfss(year: int | str, brfss_path: str | None = None) -> pd.DataFrame:
+    """Loads local BRFSS SAS data for a given year, warning if versioned files exist."""
     if not brfss_path:
         brfss_path = BRFSS_PATH
     else:
-        print(f"loading from {brfss_path} folder")
+        print(f"Loading from {brfss_path} folder")
     
+    # Catch missing environment variables immediately
     if not brfss_path:
-        raise ValueError("BRFSS_PATH is missing. Specify it in your .env file or pass it directly to the function `load_brfss(year, brfss_path`.")   
+        raise ValueError("BRFSS_PATH is missing. Specify it in your .env file or pass it directly.")   
         
     base_file = os.path.join(brfss_path, f"LLCP{year}.XPT")
     version_files = glob.glob(os.path.join(brfss_path, f"LLCP{year}V*.XPT"))
@@ -41,15 +41,9 @@ def load_brfss(year, brfss_path: str = None) -> pd.DataFrame:
         
     return pd.read_sas(base_file, format='xport')
 
-def fetch_census(variables_dict: dict, years: list, geo_level: str = "county", states="*" ) -> pd.DataFrame:
-    """
-    Fetches Census ACS 5-Year Data Profiles.
-    geo_level: 'county' or 'state'
-    states: '*' (all), a single FIPS string (e.g., '36'), or a list of FIPS strings (e.g., ['36', '34'])
-    """
-    api_key = CENSUS_API_KEY
-
-
+def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county", "state"] = "county", states: str | list = "*") -> pd.DataFrame:
+    """Fetches ACS 5-Year Data Profiles from the US Census API."""
+    
     # Convert list of states to comma-separated string for the API
     if isinstance(states, list):
         states = ",".join(states)
@@ -62,7 +56,7 @@ def fetch_census(variables_dict: dict, years: list, geo_level: str = "county", s
         # Dynamically build geography parameters
         params = {
             "get": ",".join(variables_dict.keys()),
-            "key": api_key
+            "key": CENSUS_API_KEY
         }
         
         if geo_level == "state":
@@ -90,10 +84,11 @@ def fetch_census(variables_dict: dict, years: list, geo_level: str = "county", s
     df_final.rename(columns=variables_dict, inplace=True)
     return df_final
 
-def fetch_hcup(catalog, state_name, db_type, years, cols_to_pull, icd_prefix, icd_vals):
-
-    dataset_ref = catalog.datasets[catalog.datasets["Dataset_Name"].str.contains(state_name, case=False)]["Reference"].iloc[0]
+def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years: list, cols_to_pull: list, icd_prefix: str, icd_vals: list) -> tuple[pd.DataFrame, str]:
+    """Builds a dynamic BigQuery SQL string and fetches HCUP data via Redivis."""
+    
     # 1. Fetch tables from the local cache
+    dataset_ref = catalog.datasets[catalog.datasets["Dataset_Name"].str.contains(state_name, case=False)]["Reference"].iloc[0]
     df_tables = catalog.get_tables(dataset_ref)
     
     # Filter tables using pandas string matching
@@ -105,8 +100,9 @@ def fetch_hcup(catalog, state_name, db_type, years, cols_to_pull, icd_prefix, ic
     )
     target_tables = df_tables[mask]
 
+    # Pro Edit: Raise an error instead of returning a string to prevent unpacking crashes
     if target_tables.empty:
-        return "No tables matched your criteria."
+        raise ValueError(f"No tables matched your criteria for {state_name}, {db_type}, years: {years}")
 
     # 2. Fetch variables from cache and build master list
     table_vars = {}
@@ -115,7 +111,6 @@ def fetch_hcup(catalog, state_name, db_type, years, cols_to_pull, icd_prefix, ic
     for _, row in target_tables.iterrows():
         t_ref = row["Reference"]
         
-        # Fetch from local schema cache
         df_vars = catalog.get_variables(dataset_ref, t_ref)
         vars_in_table = df_vars["Variable"].str.upper().tolist()
         
@@ -130,14 +125,12 @@ def fetch_hcup(catalog, state_name, db_type, years, cols_to_pull, icd_prefix, ic
     # --- DIRECT REGEX FORMATTING (SAFE) ---
     regex_pattern = r"^(" + "|".join([str(x) for x in icd_vals]) + ")"
 
-    # 3. Build SQL
+    # 3. Build SQL parts
     sql_parts = []
     for _, row in target_tables.iterrows():
         t_ref = row["Reference"]
         
-        # Reconstruct the full BigQuery reference string manually
         qualified_ref = f"{catalog.org_name}.{dataset_ref}.{t_ref}"
-        
         vars_in_table = table_vars[t_ref]
         
         select_elements = []
@@ -155,9 +148,10 @@ def fetch_hcup(catalog, state_name, db_type, years, cols_to_pull, icd_prefix, ic
 
         query = f"SELECT {select_clause} \nFROM `{qualified_ref}` \nWHERE {where_clause}"
         sql_parts.append(query)
-    sql_string= "\nUNION ALL\n".join(sql_parts)
+        
+    sql_string = "\nUNION ALL\n".join(sql_parts)
 
-    # Execute the SQL query via the Redivis API
+    # 4. Execute the SQL query via the Redivis API
     df_out = catalog.org.dataset(dataset_ref).query(sql_string).to_pandas_dataframe()
 
     return df_out, sql_string
