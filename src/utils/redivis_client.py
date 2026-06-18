@@ -1,19 +1,21 @@
-
 import pandas as pd
 import redivis
 
 class RedivisCatalog:
-    def __init__(self, org_name):
+    """Manages and caches Redivis organization metadata to minimize API calls."""
+    
+    def __init__(self, org_name: str):
         self.org_name = org_name
         self.org = redivis.organization(org_name)
         
-        # Internal caches to prevent redundant API calls
+        # Initialize empty caches for datasets, tables, and schemas
         self._datasets_cache = None
         self._tables_cache = {}
         self._schema_cache = {}
 
     @property
-    def datasets(self):
+    def datasets(self) -> pd.DataFrame:
+        """Returns a cached DataFrame of all datasets in the organization."""
         if self._datasets_cache is None:
             ds_list = self.org.list_datasets()
             self._datasets_cache = pd.DataFrame({
@@ -23,7 +25,8 @@ class RedivisCatalog:
             })
         return self._datasets_cache
 
-    def get_tables(self, dataset_ref):
+    def get_tables(self, dataset_ref: str) -> pd.DataFrame:
+        """Returns a cached DataFrame of all tables for a specific dataset reference."""
         if dataset_ref not in self._tables_cache:
             tables = self.org.dataset(dataset_ref).list_tables()
             self._tables_cache[dataset_ref] = pd.DataFrame({
@@ -37,7 +40,8 @@ class RedivisCatalog:
             })
         return self._tables_cache[dataset_ref]
 
-    def get_variables(self, dataset_ref, table_ref):
+    def get_variables(self, dataset_ref: str, table_ref: str) -> pd.DataFrame:
+        """Returns a cached DataFrame of variable schemas for a specific table."""
         cache_key = f"{dataset_ref}.{table_ref}"
         if cache_key not in self._schema_cache:
             variables = self.org.dataset(dataset_ref).table(table_ref).list_variables()
@@ -50,21 +54,24 @@ class RedivisCatalog:
         return self._schema_cache[cache_key]
     
     def clear_cache(self):
+        """Resets all internal metadata caches."""
         self._datasets_cache = None
         self._tables_cache = {}
         self._schema_cache = {}
 
 def print_redivis_tree(org_name: str, limit_tables: int=3):
+    """Prints a hierarchical CLI view of datasets and their tables."""
     org = redivis.organization(org_name)
     print(f"Organization: {org_name}")
+    
     for ds in org.list_datasets():
-        # Extracts 'new_jersey_hcup:5bca' from the full reference
+        # Isolate the dataset reference ID (e.g., 'new_jersey_hcup:5bca')
         ds_ref = ds.qualified_reference.split('.')[-1] 
         print(f"\nDataset: {ds_ref}")
         
         tables = ds.list_tables()
         for t in tables[:limit_tables]: 
-            # Extracts 'nj_sedd_2012_core:wrs0'
+            # Isolate the table reference ID (e.g., 'nj_sedd_2012_core:wrs0')
             t_ref = t.qualified_reference.split('.')[-1]
             print(f"  ↳ {t_ref}")
             
