@@ -6,7 +6,7 @@ from typing import Literal
 from src.utils.config import get_data_path, CENSUS_API_KEY, BRFSS_PATH
 import re
 
-def load_nvdrs(file_key: str, data_folder: str, nrows: int | None = None) -> pd.DataFrame:
+def load_nvdrs(file_key: str, data_folder: str, usecols: list | None = None, nrows: int | None = None) -> pd.DataFrame:
     """Loads the NVDRS dataset from local storage, handling Windows encoding."""
     nvdrs_path = get_data_path(file_key, data_folder)
     
@@ -15,7 +15,8 @@ def load_nvdrs(file_key: str, data_folder: str, nrows: int | None = None) -> pd.
         encoding="cp1252", 
         encoding_errors="replace", # Replaces problematic characters instead of crashing
         low_memory=False, 
-        nrows=nrows 
+        nrows=nrows,
+        usecols=usecols 
     )
     return df
 
