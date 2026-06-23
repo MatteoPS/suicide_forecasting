@@ -9,7 +9,7 @@ __pycache__/
 
 # Data
 data/raw/
-*.csv
+
 *.xlsx
 *.pkl
 

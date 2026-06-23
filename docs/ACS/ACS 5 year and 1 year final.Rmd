@@ -1,0 +1,192 @@
+---
+title: "Harmonized ACS"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidycensus)
+library(janitor)
+```
+
+```{r}
+census_api_key("")
+
+
+
+#https://www.census.gov/data/developers/data-sets/popest-popproj/popest/popest-vars/2019.html
+density <- get_estimates(geography = "county", time_series = T, variables = "DENSITY", vintage = 2019) %>%
+  filter(DATE > 2) %>%
+  mutate(year = recode(DATE, `3`= 2010, `4` = 2011, `5` = 2012, `6` = 2013, `7` = 2014, `8` = 2015, `9` = 2016, `10` = 2017, `11` = 2018, `12` = 2019)) %>%
+  rename(density = value) %>%
+  select(-c(variable, DATE))
+
+acs_vars <- read_csv("variables acs5acs1.csv")
+  
+vars_all_years <- list()
+
+for (i in 1:16) {
+  
+  vars <- acs_vars %>%
+    select(c(1, 1 + i)) %>%
+    na.omit()
+  
+  unnamed_vars <- vars %>% pull(2)
+  names(unnamed_vars) <- vars$variable_name
+  vars_all_years[[i]] <- unnamed_vars
+  
+}
+
+
+acs2020 <- get_acs(geography = "county", variables = vars_all_years[[1]], year = 2020, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2020, .after = NAME)
+
+acs2019 <- get_acs(geography = "county", variables = vars_all_years[[2]], year = 2019, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2019, .after = NAME)
+
+acs2018 <- get_acs(geography = "county", variables = vars_all_years[[3]], year = 2018, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2018, .after = NAME)
+
+acs2017 <- get_acs(geography = "county", variables = vars_all_years[[4]], year = 2017, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2017, .after = NAME)
+
+acs2016 <- get_acs(geography = "county", variables = vars_all_years[[5]], year = 2016, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2016, .after = NAME)
+
+acs2015 <- get_acs(geography = "county", variables = vars_all_years[[6]], year = 2015, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2015, .after = NAME)
+
+acs2014 <- get_acs(geography = "county", variables = vars_all_years[[7]], year = 2014, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2014, .after = NAME)
+
+acs2013 <- get_acs(geography = "county", variables = vars_all_years[[8]], year = 2013, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2013, .after = NAME)
+
+acs2012 <- get_acs(geography = "county", variables = vars_all_years[[9]], year = 2012, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2012, .after = NAME)
+
+acs2011 <- get_acs(geography = "county", variables = vars_all_years[[10]], year = 2011, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2011, .after = NAME)
+
+acs2010 <- get_acs(geography = "county", variables = vars_all_years[[11]], year = 2010, survey = "acs5", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2010, .after = NAME)
+
+
+
+acs2009 <- get_acs(geography = "county", variables = vars_all_years[[12]], year = 2009, survey = "acs1", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2009, .after = NAME)
+
+acs2008 <- get_acs(geography = "county", variables = vars_all_years[[13]], year = 2008, survey = "acs1", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2008, .after = NAME)
+
+acs2007 <- get_acs(geography = "county", variables = vars_all_years[[14]], year = 2007, survey = "acs1", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2007, .after = NAME)
+
+acs2006 <- get_acs(geography = "county", variables = vars_all_years[[15]], year = 2006, survey = "acs1", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2006, .after = NAME)
+
+acs2005 <- get_acs(geography = "county", variables = vars_all_years[[16]], year = 2005, survey = "acs1", show_call=TRUE) %>%
+  select(-moe) %>% 
+  pivot_wider(names_from = variable, values_from = estimate) %>% 
+  mutate(year = 2005, .after = NAME,
+         male_white_lths = male_white_lths_a + male_white_lths_b,
+         male_white_somecoll = male_white_somecoll_a + male_white_somecoll_b,
+         male_white_collplus = male_white_collplus_a + male_white_collplus_b,
+         female_white_lths = female_white_lths_a + female_white_lths_b,
+         female_white_somecoll = female_white_somecoll_a + female_white_somecoll_b,
+         female_white_collplus = female_white_collplus_a + female_white_collplus_b,
+         male_black_lths = male_black_lths_a + male_black_lths_b,
+         male_black_somecoll = male_black_somecoll_a + male_black_somecoll_b,
+         male_black_collplus = male_black_collplus_a + male_black_collplus_b,
+         female_black_lths = female_black_lths_a + female_black_lths_b,
+         female_black_somecoll = female_black_somecoll_a + female_black_somecoll_b,
+         female_black_collplus = female_black_collplus_a + female_black_collplus_b,
+         male_aian_lths = male_aian_lths_a + male_aian_lths_b,
+         male_aian_somecoll = male_aian_somecoll_a + male_aian_somecoll_b,
+         male_aian_collplus = male_aian_collplus_a + male_aian_collplus_b,
+         female_aian_lths = female_aian_lths_a + female_aian_lths_b,
+         female_aian_somecoll = female_aian_somecoll_a + female_aian_somecoll_b,
+         female_aian_collplus = female_aian_collplus_a + female_aian_collplus_b,
+         male_asian_lths = male_asian_lths_a + male_asian_lths_b,
+         male_asian_somecoll = male_asian_somecoll_a + male_asian_somecoll_b,
+         male_asian_collplus = male_asian_collplus_a + male_asian_collplus_b,
+         female_asian_lths = female_asian_lths_a + female_asian_lths_b,
+         female_asian_somecoll = female_asian_somecoll_a + female_asian_somecoll_b,
+         female_asian_collplus = female_asian_collplus_a + female_asian_collplus_b,
+         male_nhopi_lths = male_nhopi_lths_a + male_nhopi_lths_b,
+         male_nhopi_somecoll = male_nhopi_somecoll_a + male_nhopi_somecoll_b,
+         male_nhopi_collplus = male_nhopi_collplus_a + male_nhopi_collplus_b,
+         female_nhopi_lths = female_nhopi_lths_a + female_nhopi_lths_b,
+         female_nhopi_somecoll = female_nhopi_somecoll_a + female_nhopi_somecoll_b,
+         female_nhopi_collplus = female_nhopi_collplus_a + female_nhopi_collplus_b,
+         male_other_lths = male_other_lths_a + male_other_lths_b,
+         male_other_somecoll = male_other_somecoll_a + male_other_somecoll_b,
+         male_other_collplus = male_other_collplus_a + male_other_collplus_b,
+         female_other_lths = female_other_lths_a + female_other_lths_b,
+         female_other_somecoll = female_other_somecoll_a + female_other_somecoll_b,
+         female_other_collplus = female_other_collplus_a + female_other_collplus_b,
+         male_multi_lths = male_multi_lths_a + male_multi_lths_b,
+         male_multi_somecoll = male_multi_somecoll_a + male_multi_somecoll_b,
+         male_multi_collplus = male_multi_collplus_a + male_multi_collplus_b,
+         female_multi_lths = female_multi_lths_a + female_multi_lths_b,
+         female_multi_somecoll = female_multi_somecoll_a + female_multi_somecoll_b,
+         female_multi_collplus = female_multi_collplus_a + female_multi_collplus_b,
+         male_white_nohisp_lths = male_white_nohisp_lths_a + male_white_nohisp_lths_b,
+         male_white_nohisp_somecoll = male_white_nohisp_somecoll_a + male_white_nohisp_somecoll_b,
+         male_white_nohisp_collplus = male_white_nohisp_collplus_a + male_white_nohisp_collplus_b,
+         female_white_nohisp_lths = female_white_nohisp_lths_a + female_white_nohisp_lths_b,
+         female_white_nohisp_somecoll = female_white_nohisp_somecoll_a + female_white_nohisp_somecoll_b,
+         female_white_nohisp_collplus = female_white_nohisp_collplus_a + female_white_nohisp_collplus_b,
+         male_hisp_lths = male_hisp_lths_a + male_hisp_lths_b,
+         male_hisp_somecoll = male_hisp_somecoll_a + male_hisp_somecoll_b,
+         male_hisp_collplus = male_hisp_collplus_a + male_hisp_collplus_b,
+         female_hisp_lths = female_hisp_lths_a + female_hisp_lths_b,
+         female_hisp_somecoll = female_hisp_somecoll_a + female_hisp_somecoll_b,
+         female_hisp_collplus = female_hisp_collplus_a + female_hisp_collplus_b) %>%
+  select(-ends_with(c("_a", "_b")))
+
+
+
+acs <- bind_rows(acs2005, acs2006, acs2007, acs2008, acs2009, acs2010, acs2011, acs2012, acs2013, acs2014, acs2015, acs2016, acs2017, acs2018, acs2019, acs2020) %>% 
+  mutate_at(vars(starts_with(c("male", "female", "white", "black", "hisp", "est", "pov", "soc", "supp", "fam"))), ~(100* . / total_pop)) %>%
+  rename_at(vars(starts_with(c("male", "female", "white", "black", "hisp", "est", "pov", "soc", "supp", "fam"))), function(x){paste0("p_", x)})
+
+acs_dens <- left_join(acs, density, by = c("year", "GEOID", "NAME"))
+
+
+
+write.csv(acs_dens, file = "acs_2005_2020_081622.csv")
+
+
+```
