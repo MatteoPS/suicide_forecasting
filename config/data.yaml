@@ -1,7 +1,7 @@
 paths:
   raw:
     sid: 
-    sedd: 
+    sedd:
     nvdrs: "data/raw/keyes_973_nvdrs_2023.csv"
     nvdrs_narratives: "data/raw/keyes_973_nvdrs_2023_narratives.csv"
     costal_counties: "data/raw/costal_counties_NOAA.csv" 

@@ -16,7 +16,7 @@ def load_nvdrs(file_key: str, data_folder: str, usecols: list | None = None, nro
         encoding_errors="replace", # Replaces problematic characters instead of crashing
         low_memory=False, 
         nrows=nrows,
-        usecols=usecols 
+        usecols=usecols
     )
     return df
 
