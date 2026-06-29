@@ -1,6 +1,7 @@
 import pandas as pd
 import redivis
 
+
 class RedivisCatalog:
     """Manages and caches Redivis organization metadata to minimize API calls."""
     
