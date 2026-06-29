@@ -18,7 +18,6 @@ def filter_nvdrs_suicides(df: pd.DataFrame) -> pd.DataFrame:
     cleaned_df = pd.concat([single, others.loc[idx]], ignore_index=True)
     
     # Standardize date format for time series usage
-    cleaned_df['InjuryDate'] = pd.to_datetime(cleaned_df['InjuryDate'])
     cleaned_df['DeathDate'] = pd.to_datetime(cleaned_df['DeathDate'])
     cleaned_df['DeathDate_myr'] = pd.to_datetime(cleaned_df['DeathDate_myr'], format='%m/%Y')
     return cleaned_df
