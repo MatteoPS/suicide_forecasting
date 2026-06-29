@@ -1,8 +1,9 @@
 """Global configuration, paths, and environment variables."""
-import yaml
 import os
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
+
+import yaml
 from dotenv import load_dotenv
 
 # Load environment variables from .env
