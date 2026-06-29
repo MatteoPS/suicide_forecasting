@@ -1,10 +1,14 @@
+import glob
 import os
+import re
+from typing import Literal
+
 import pandas as pd
 import requests
-import glob
-from typing import Literal
-from src.utils.config import get_data_path, CENSUS_API_KEY, BRFSS_PATH
-import re
+import warnings
+
+from src.utils.config import BRFSS_PATH, CENSUS_API_KEY, get_data_path
+
 
 def load_nvdrs(file_key: str, data_folder: str, usecols: list | None = None, nrows: int | None = None) -> pd.DataFrame:
     """Loads the NVDRS dataset from local storage, handling Windows encoding."""
@@ -86,14 +90,13 @@ def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county",
     df_final.rename(columns=variables_dict, inplace=True)
     return df_final
 
-def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years: list, cols_to_pull: list, icd_prefix: str, icd_vals: list) -> tuple[pd.DataFrame, str]:
+def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years: list, cols_to_pull: list, icd_prefix: str, icd_vals: list, return_icd_cols: bool = False) -> pd.DataFrame:
     """Builds a dynamic BigQuery SQL string and fetches HCUP data via Redivis."""
     
     # 1. Fetch tables from the local cache
     dataset_ref = catalog.datasets[catalog.datasets["Dataset_Name"].str.contains(state_name, case=False)]["Reference"].iloc[0]
     df_tables = catalog.get_tables(dataset_ref)
     
-    # Filter tables using pandas string matching
     year_pattern = "|".join([str(y) for y in years])
     mask = (
         df_tables["Table_Name"].str.contains(db_type, case=False) &
@@ -102,7 +105,6 @@ def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years:
     )
     target_tables = df_tables[mask]
 
-    # Pro Edit: Raise an error instead of returning a string to prevent unpacking crashes
     if target_tables.empty:
         raise ValueError(f"No tables matched your criteria for {state_name}, {db_type}, years: {years}")
 
@@ -112,7 +114,6 @@ def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years:
 
     for _, row in target_tables.iterrows():
         t_ref = row["Reference"]
-        
         df_vars = catalog.get_variables(dataset_ref, t_ref)
         vars_in_table = df_vars["Variable"].str.upper().tolist()
         
@@ -122,38 +123,54 @@ def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years:
         master_icd_cols.update(icd_in_table)
 
     master_icd_cols = sorted(list(master_icd_cols))
-    master_schema = [c.upper() for c in cols_to_pull] + master_icd_cols
+    
+    if return_icd_cols:
+        master_schema = [c.upper() for c in cols_to_pull] + master_icd_cols
+    else:
+        master_schema = [c.upper() for c in cols_to_pull]
 
-    # --- DIRECT REGEX FORMATTING (SAFE) ---
     regex_pattern = r"^(" + "|".join([str(x) for x in icd_vals]) + ")"
 
-    # 3. Build SQL parts
-    sql_parts = []
+    # 3 & 4. Build SQL and execute PER TABLE to catch year-specific errors
+    dfs = []
     for _, row in target_tables.iterrows():
         t_ref = row["Reference"]
         
         qualified_ref = f"{catalog.org_name}.{dataset_ref}.{t_ref}"
         vars_in_table = table_vars[t_ref]
         
+        valid_table_icds = [c for c in master_icd_cols if c in vars_in_table]
+        if not valid_table_icds: 
+            continue
+            
         select_elements = []
         for col in master_schema:
             if col in vars_in_table:
                 select_elements.append(col)
             else:
-                select_elements.append(f"NULL AS {col}")
+                select_elements.append(f"NULL AS {col}") 
         
         select_clause = ", ".join(select_elements)
         
-        valid_table_icds = [c for c in master_icd_cols if c in vars_in_table]
-        where_conditions = [f"REGEXP_CONTAINS({col}, r'{regex_pattern}')" for col in valid_table_icds]
+        where_conditions = [f"REGEXP_CONTAINS(CAST({col} AS STRING), r'{regex_pattern}')" for col in valid_table_icds]
         where_clause = " OR \n    ".join(where_conditions)
 
         query = f"SELECT {select_clause} \nFROM `{qualified_ref}` \nWHERE {where_clause}"
-        sql_parts.append(query)
         
-    sql_string = "\nUNION ALL\n".join(sql_parts)
+        # Execute individual table query
+        try:
+            df_year = catalog.org.dataset(dataset_ref).query(query).to_pandas_dataframe()
+            dfs.append(df_year)
+        except Exception as e:
+            warnings.warn(
+                f"\nWARNING: Skipping dataset. {state_name} - {t_ref} is too large or access was denied.\n"
+                f"This state/year will be missing in the final df.\nError Details: {e}"
+            )
+        
+    if not dfs:
+        raise ValueError(f"No data could be retrieved for {state_name}. All tables failed or were empty.")
 
-    # 4. Execute the SQL query via the Redivis API
-    df_out = catalog.org.dataset(dataset_ref).query(sql_string).to_pandas_dataframe()
+    # Combine successful queries
+    df_out = pd.concat(dfs, ignore_index=True)
 
-    return df_out, sql_string
+    return df_out
