@@ -14,7 +14,8 @@ def load_nvdrs(file_key: str, data_folder: str, usecols: list | None = None, nro
         nvdrs_path, 
         encoding="cp1252", 
         encoding_errors="replace", # Replaces problematic characters instead of crashing
-        low_memory=False, 
+        low_memory=True, 
+        dtype={'DeathDate': str, 'DeathDate_myr': str, 'DeathDate_year': str},
         nrows=nrows,
         usecols=usecols
     )
