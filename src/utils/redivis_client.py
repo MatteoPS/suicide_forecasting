@@ -100,8 +100,7 @@ def display_hcup_variables(catalog, state: str, year: str | int, db_type: str, t
         raise ValueError(f"No table found matching year: {year}, db_type: {db_type}, table: {table}")
     table_ref = df_tables[tbl_mask]['Reference'].iloc[0]
     
-    # 3. Get and Display Variables
+    # 3. Get variables
     df_vars = catalog.get_variables(dataset_ref, table_ref)
-    display(df_vars)
     
     return df_vars
