@@ -67,18 +67,18 @@ def aggregate_nvdrs_monthly(df: pd.DataFrame, geo_level: Literal["county", "stat
     
     return df.groupby('DeathDate_myr').size().reset_index(name='incident_count')
 
-def enrich_zip_data(df: pd.DataFrame, zip_col: str = 'ZIP') -> pd.DataFrame:
+def enrich_zip_data(df: pd.DataFrame, zip_col: str = 'ZIP', zip_col_c: str = 'ZIP_c') -> pd.DataFrame:
     search = SearchEngine()
     
     # Clean ZIPs: convert to string, remove '.0', pad to 5 digits
-    df[zip_col] = df[zip_col].astype(str).str.replace(r'\.0$', '', regex=True).str.zfill(5)
+    df[zip_col_c] = df[zip_col].astype(str).str.replace(r'\.0$', '', regex=True).str.zfill(5)
     
     # Process only unique ZIPs for performance
-    unique_zips = df[zip_col].unique()
+    unique_zips = df[zip_col_c].unique() # Updated to use the clean column
     z_map = {z: search.by_zipcode(z) for z in unique_zips}
     
-    df['City'] = df[zip_col].map(lambda z: z_map[z].major_city if z_map.get(z) else None)
-    df['County'] = df[zip_col].map(lambda z: z_map[z].county if z_map.get(z) else None)
-    df['State'] = df[zip_col].map(lambda z: z_map[z].state if z_map.get(z) else None)
+    df['City'] = df[zip_col_c].map(lambda z: z_map[z].major_city if z_map.get(z) else None)
+    df['County'] = df[zip_col_c].map(lambda z: z_map[z].county if z_map.get(z) else None)
+    df['State'] = df[zip_col_c].map(lambda z: z_map[z].state if z_map.get(z) else None)
     
     return df

@@ -104,7 +104,7 @@ def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years:
         df_tables["Table_Name"].str.contains(year_pattern, flags=re.IGNORECASE, regex=True)
     )
     target_tables = df_tables[mask]
-
+    print(f"Fetching {state_name} {db_type} {year_pattern}...")
     if target_tables.empty:
         raise ValueError(f"No tables matched your criteria for {state_name}, {db_type}, years: {years}")
 
