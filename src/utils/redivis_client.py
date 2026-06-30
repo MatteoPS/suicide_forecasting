@@ -1,6 +1,6 @@
 import pandas as pd
 import redivis
-
+from IPython.display import display
 
 class RedivisCatalog:
     """Manages and caches Redivis organization metadata to minimize API calls."""
@@ -78,3 +78,30 @@ def print_redivis_tree(org_name: str, limit_tables: int=3):
             
         if len(tables) > limit_tables:
             print(f"  ↳ ... (+{len(tables) - limit_tables} more tables)")
+
+
+def display_hcup_variables(catalog, state: str, year: str | int, db_type: str, table: str = 'core'):
+    """Finds and displays the variables for a specific HCUP table."""
+    
+    # 1. Get Dataset Reference
+    ds_match = catalog.datasets['Dataset_Name'].str.contains(state, case=False, regex=False)
+    if not ds_match.any():
+        raise ValueError(f"No dataset found matching state: {state}")
+    dataset_ref = catalog.datasets[ds_match]['Reference'].iloc[0]
+    
+    # 2. Get Table Reference
+    df_tables = catalog.get_tables(dataset_ref)
+    tbl_mask = (
+        df_tables['Table_Name'].str.contains(str(year), case=False) &
+        df_tables['Table_Name'].str.contains(db_type, case=False) &
+        df_tables['Table_Name'].str.contains(table, case=False)
+    )
+    if not tbl_mask.any():
+        raise ValueError(f"No table found matching year: {year}, db_type: {db_type}, table: {table}")
+    table_ref = df_tables[tbl_mask]['Reference'].iloc[0]
+    
+    # 3. Get and Display Variables
+    df_vars = catalog.get_variables(dataset_ref, table_ref)
+    display(df_vars)
+    
+    return df_vars
