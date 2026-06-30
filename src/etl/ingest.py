@@ -174,3 +174,46 @@ def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years:
     df_out = pd.concat(dfs, ignore_index=True)
 
     return df_out
+
+def fetch_hcup_ahal(catalog, state_name: str, years: list) -> pd.DataFrame:
+    """Fetches HCUP AHA Linkage (AHAL) data via Redivis."""
+    
+    dataset_ref = catalog.datasets[catalog.datasets["Dataset_Name"].str.contains(state_name, case=False)]["Reference"].iloc[0]
+    df_tables = catalog.get_tables(dataset_ref)
+    
+    # Extract unique 4-digit years to handle quarters (e.g., "2015q1q3" -> "2015")
+    clean_years = list(set([str(y)[:4] for y in years]))
+    year_pattern = "|".join(clean_years)
+    
+    mask = (
+        df_tables["Table_Name"].str.contains("AHAL", case=False) &
+        df_tables["Table_Name"].str.contains(year_pattern, flags=re.IGNORECASE, regex=True)
+    )
+    target_tables = df_tables[mask]
+    
+    print(f"Fetching {state_name} AHAL {year_pattern}...")
+    if target_tables.empty:
+        raise ValueError(f"No AHAL tables matched your criteria for {state_name}, years: {clean_years}")
+
+    dfs = []
+    for _, row in target_tables.iterrows():
+        t_ref = row["Reference"]
+        qualified_ref = f"{catalog.org_name}.{dataset_ref}.{t_ref}"
+        
+        query = f"SELECT * \nFROM `{qualified_ref}`"
+        
+        try:
+            df_year = catalog.org.dataset(dataset_ref).query(query).to_pandas_dataframe()
+            dfs.append(df_year)
+        except Exception as e:
+            warnings.warn(
+                f"\nWARNING: Skipping AHAL dataset. {state_name} - {t_ref} failed.\n"
+                f"This state/year will be missing in the final df.\nError Details: {e}"
+            )
+        
+    if not dfs:
+        raise ValueError(f"No AHAL data could be retrieved for {state_name}. All tables failed or were empty.")
+
+    df_out = pd.concat(dfs, ignore_index=True)
+
+    return df_out

@@ -2,7 +2,7 @@ from typing import Literal
 
 import pandas as pd
 from uszipcode import SearchEngine
-
+from src.utils.config import get_data_path
 
 def filter_nvdrs_suicides(df: pd.DataFrame) -> pd.DataFrame:
     """Filters dataset for suicides and isolates the primary actor in multi-person incidents."""
@@ -80,5 +80,34 @@ def enrich_zip_data(df: pd.DataFrame, zip_col: str = 'ZIP', zip_col_c: str = 'ZI
     df['City'] = df[zip_col_c].map(lambda z: z_map[z].major_city if z_map.get(z) else None)
     df['County'] = df[zip_col_c].map(lambda z: z_map[z].county if z_map.get(z) else None)
     df['State'] = df[zip_col_c].map(lambda z: z_map[z].state if z_map.get(z) else None)
+    
+    return df
+
+
+def enrich_fips_data(df: pd.DataFrame, fips_col: str = 'HFIPSSTCO') -> pd.DataFrame:
+    # Clean the target column in your dataset
+    df[fips_col] = df[fips_col].astype(str).str.replace(r'\.0$', '', regex=True).str.zfill(5)
+    
+    # Resolve the absolute path using your config
+    crosswalk_path = get_data_path("fips_crosswalk", "raw")
+    
+    # Load Census file (no headers in the official txt file)
+    col_names = ['State_Abbr', 'State_FIPS', 'County_FIPS', 'County_Name', 'Class_Code']
+    fips_df = pd.read_csv(crosswalk_path, names=col_names, dtype=str)
+    
+    # Reconstruct the 5-digit FIPS code
+    fips_df['FIPS'] = fips_df['State_FIPS'] + fips_df['County_FIPS']
+    
+    # Merge into HCUP data
+    df = df.merge(
+        fips_df[['FIPS', 'State_Abbr', 'County_Name']], 
+        left_on=fips_col, 
+        right_on='FIPS', 
+        how='left'
+    )
+    
+    # Clean up column names and drop the redundant join key
+    df = df.rename(columns={'State_Abbr': 'Hospital_State', 'County_Name': 'Hospital_County'})
+    df = df.drop(columns=['FIPS'])
     
     return df
