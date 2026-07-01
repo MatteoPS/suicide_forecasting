@@ -1,6 +1,7 @@
 from typing import Literal
 
 import pandas as pd
+import numpy as np
 from uszipcode import SearchEngine
 from src.utils.config import get_data_path
 
@@ -85,28 +86,30 @@ def enrich_zip_data(df: pd.DataFrame, zip_col: str = 'ZIP', zip_col_c: str = 'ZI
 
 
 def enrich_fips_data(df: pd.DataFrame, fips_col: str = 'HFIPSSTCO') -> pd.DataFrame:
-    # Clean the target column in your dataset
-    df[fips_col] = df[fips_col].astype(str).str.replace(r'\.0$', '', regex=True).str.zfill(5)
+    # 1. Guard clause to prevent KeyError
+    if fips_col not in df.columns:
+        df['Hospital_State'] = np.nan
+        df['Hospital_County'] = np.nan
+        return df
+        
+    # 2. Clean FIPS safely
+    df[fips_col] = df[fips_col].apply(
+        lambda x: str(x).replace('.0', '').zfill(5) if pd.notna(x) and str(x).lower() != 'nan' else np.nan
+    )
     
-    # Resolve the absolute path using your config
+    # 3. Process crosswalk
     crosswalk_path = get_data_path("fips_crosswalk", "raw")
-    
-    # Load Census file (no headers in the official txt file)
     col_names = ['State_Abbr', 'State_FIPS', 'County_FIPS', 'County_Name', 'Class_Code']
     fips_df = pd.read_csv(crosswalk_path, names=col_names, dtype=str)
     
-    # Reconstruct the 5-digit FIPS code
     fips_df['FIPS'] = fips_df['State_FIPS'] + fips_df['County_FIPS']
     
-    # Merge into HCUP data
     df = df.merge(
         fips_df[['FIPS', 'State_Abbr', 'County_Name']], 
         left_on=fips_col, 
         right_on='FIPS', 
         how='left'
     )
-    
-    # Clean up column names and drop the redundant join key
     df = df.rename(columns={'State_Abbr': 'Hospital_State', 'County_Name': 'Hospital_County'})
     df = df.drop(columns=['FIPS'])
     

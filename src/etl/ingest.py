@@ -19,7 +19,7 @@ def load_nvdrs(file_key: str, data_folder: str, usecols: list | None = None, nro
         encoding="cp1252", 
         encoding_errors="replace", # Replaces problematic characters instead of crashing
         low_memory=True, 
-        dtype={'DeathDate': str, 'DeathDate_myr': str, 'DeathDate_year': str},
+        dtype={'DeathDate': str, 'DeathDate_myr': str, 'DeathDate_year': str , 'Sex': str, 'AgeYears_c': str},
         nrows=nrows,
         usecols=usecols
     )
@@ -174,14 +174,10 @@ def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years:
     df_out = pd.concat(dfs, ignore_index=True)
 
     return df_out
-
-def fetch_hcup_ahal(catalog, state_name: str, years: list) -> pd.DataFrame:
-    """Fetches HCUP AHA Linkage (AHAL) data via Redivis."""
-    
+def fetch_hcup_ahal(catalog, state_name: str, years: list, core_keys: list = None) -> pd.DataFrame:
     dataset_ref = catalog.datasets[catalog.datasets["Dataset_Name"].str.contains(state_name, case=False)]["Reference"].iloc[0]
     df_tables = catalog.get_tables(dataset_ref)
     
-    # Extract unique 4-digit years to handle quarters (e.g., "2015q1q3" -> "2015")
     clean_years = list(set([str(y)[:4] for y in years]))
     year_pattern = "|".join(clean_years)
     
@@ -191,7 +187,6 @@ def fetch_hcup_ahal(catalog, state_name: str, years: list) -> pd.DataFrame:
     )
     target_tables = df_tables[mask]
     
-    print(f"Fetching {state_name} AHAL {year_pattern}...")
     if target_tables.empty:
         raise ValueError(f"No AHAL tables matched your criteria for {state_name}, years: {clean_years}")
 
@@ -200,20 +195,34 @@ def fetch_hcup_ahal(catalog, state_name: str, years: list) -> pd.DataFrame:
         t_ref = row["Reference"]
         qualified_ref = f"{catalog.org_name}.{dataset_ref}.{t_ref}"
         
-        query = f"SELECT * \nFROM `{qualified_ref}`"
+        df_vars = catalog.get_variables(dataset_ref, t_ref)
+        vars_in_table = df_vars["Variable"].str.upper().tolist()
         
-        try:
-            df_year = catalog.org.dataset(dataset_ref).query(query).to_pandas_dataframe()
-            dfs.append(df_year)
-        except Exception as e:
-            warnings.warn(
-                f"\nWARNING: Skipping AHAL dataset. {state_name} - {t_ref} failed.\n"
-                f"This state/year will be missing in the final df.\nError Details: {e}"
-            )
-        
+        if 'KEY' in vars_in_table:
+            # Patient-level crosswalk (e.g., Iowa). Filter by KEYs to avoid the 10MB limit.
+            if not core_keys:
+                raise ValueError(f"{state_name} AHAL is patient-level. You must pass 'core_keys'.")
+            
+            # Chunking to avoid hitting BigQuery character limits
+            chunk_size = 10000
+            for i in range(0, len(core_keys), chunk_size):
+                chunk = core_keys[i:i+chunk_size]
+                keys_str = ", ".join([f"'{k}'" for k in chunk])
+                query = f"SELECT * FROM `{qualified_ref}` WHERE CAST(KEY AS STRING) IN ({keys_str})"
+                
+                try:
+                    dfs.append(catalog.org.dataset(dataset_ref).query(query).to_pandas_dataframe())
+                except Exception as e:
+                    warnings.warn(f"Failed on chunk {i} for {t_ref}. Error: {e}")
+        else:
+            # Standard hospital-level file. Safe to download entirely.
+            query = f"SELECT * FROM `{qualified_ref}`"
+            try:
+                dfs.append(catalog.org.dataset(dataset_ref).query(query).to_pandas_dataframe())
+            except Exception as e:
+                warnings.warn(f"Failed to fetch {t_ref}. Error: {e}")
+                
     if not dfs:
-        raise ValueError(f"No AHAL data could be retrieved for {state_name}. All tables failed or were empty.")
+        raise ValueError(f"No AHAL data could be retrieved for {state_name}.")
 
-    df_out = pd.concat(dfs, ignore_index=True)
-
-    return df_out
+    return pd.concat(dfs, ignore_index=True)
