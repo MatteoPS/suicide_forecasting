@@ -19,7 +19,7 @@ def load_nvdrs(file_key: str, data_folder: str, usecols: list | None = None, nro
         encoding="cp1252", 
         encoding_errors="replace", # Replaces problematic characters instead of crashing
         low_memory=True, 
-        dtype={'DeathDate': str, 'DeathDate_myr': str, 'DeathDate_year': str , 'Sex': str, 'AgeYears_c': str},
+        dtype=str,  
         nrows=nrows,
         usecols=usecols
     )
@@ -47,10 +47,10 @@ def load_brfss(year: int | str, brfss_path: str | None = None) -> pd.DataFrame:
         
     return pd.read_sas(base_file, format='xport')
 
-def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county", "state"] = "county", states: str | list = "*") -> pd.DataFrame:
+
+def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county", "state", "zip"] = "county", states: str | list = "*") -> pd.DataFrame:
     """Fetches ACS 5-Year Data Profiles from the US Census API."""
     
-    # Convert list of states to comma-separated string for the API
     if isinstance(states, list):
         states = ",".join(states)
 
@@ -59,7 +59,6 @@ def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county",
     for year in years:
         base_url = f"https://api.census.gov/data/{year}/acs/acs5/profile"
         
-        # Dynamically build geography parameters
         params = {
             "get": ",".join(variables_dict.keys()),
             "key": CENSUS_API_KEY
@@ -71,6 +70,8 @@ def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county",
             params["for"] = "county:*"
             if states != "*":
                 params["in"] = f"state:{states}"
+        elif geo_level == "zip":
+            params["for"] = "zip code tabulation area:*"
         
         response = requests.get(base_url, params=params)
         
@@ -174,6 +175,8 @@ def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years:
     df_out = pd.concat(dfs, ignore_index=True)
 
     return df_out
+
+
 def fetch_hcup_ahal(catalog, state_name: str, years: list, core_keys: list = None) -> pd.DataFrame:
     dataset_ref = catalog.datasets[catalog.datasets["Dataset_Name"].str.contains(state_name, case=False)]["Reference"].iloc[0]
     df_tables = catalog.get_tables(dataset_ref)

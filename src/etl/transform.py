@@ -23,7 +23,6 @@ def filter_nvdrs_suicides(df: pd.DataFrame) -> pd.DataFrame:
     
     # Standardize date format for time series usage
     cleaned_df['DeathDate'] = pd.to_datetime(cleaned_df['DeathDate'])
-    cleaned_df['DeathDate_myr'] = pd.to_datetime(cleaned_df['DeathDate_myr'], format='%m/%Y')
     return cleaned_df
 
 def aggregate_nvdrs_daily_injury(df: pd.DataFrame, geo_level: Literal["county", "state"] = None) -> pd.DataFrame:
@@ -41,19 +40,12 @@ def aggregate_nvdrs_daily_injury(df: pd.DataFrame, geo_level: Literal["county", 
     # Count total daily incidents globally
     return df.groupby('InjuryDate').size().reset_index(name='incident_count')
 
-def aggregate_nvdrs_daily(df: pd.DataFrame, geo_level: Literal["county", "state"] = None) -> pd.DataFrame:
-    """uses 'DeathDate' column to Aggregates incidents by day (one day per row), optionally separating counts by county. Default = Country (no separation)"""
-    if geo_level == "state":
-        # Count daily incidents per state
-        daily_df = df.groupby(['DeathDate', 'DeathState']).size().reset_index(name='incident_count')
-        # Reshape data so each state has its own column, filling missing days with 0
-        return daily_df.pivot(index='DeathDate', columns='DeathState', values='incident_count').reset_index().fillna(0)
-    elif geo_level == "county":
-        # Count daily incidents per county
-        daily_df = df.groupby(['DeathDate', 'DeathFIPS']).size().reset_index(name='incident_count')
-        # Reshape data so each county has its own column, filling missing days with 0
-        return daily_df.pivot(index='DeathDate', columns='DeathFIPS', values='incident_count').reset_index().fillna(0)
-    # Count total daily incidents globally
+def aggregate_nvdrs_daily(df: pd.DataFrame, geo_level: Literal["county", "state", "zip"] = None, geo_col: str= 'DeathFIPS') -> pd.DataFrame:
+    """Uses 'DeathDate' column to aggregate incidents by day. Default = Country (no separation)"""
+    if geo_level:
+        daily_df = df.groupby(['DeathDate', geo_col]).size().reset_index(name='incident_count')
+        return daily_df.pivot(index='DeathDate', columns=geo_col, values='incident_count').reset_index().fillna(0)
+        
     return df.groupby('DeathDate').size().reset_index(name='incident_count')
 
 def aggregate_nvdrs_monthly(df: pd.DataFrame, geo_level: Literal["county", "state"] = None) -> pd.DataFrame:
