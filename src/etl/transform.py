@@ -106,3 +106,63 @@ def enrich_fips_data(df: pd.DataFrame, fips_col: str = 'HFIPSSTCO') -> pd.DataFr
     df = df.drop(columns=['FIPS'])
     
     return df
+
+def harmonize_zcta_boundaries(df: pd.DataFrame, zip_col: str = 'ZIP', pop_col: str = 'Population', year_col: str = 'Year', 
+        state_col: str = None, county_col: str = None) -> pd.DataFrame:
+    """
+    Harmonizes 2010-2019 ZCTA populations to 2020 ZCTA boundaries using the 
+    local Census Bureau Relationship File.
+    """
+    # 1. Split the time series at the actual API boundary change (2021)
+    df_pre_2020 = df[df[year_col] < 2021].copy()
+    df_post_2020 = df[df[year_col] >= 2021].copy()
+
+    # 2. Load the local crosswalk file using the utility function
+    crosswalk_path = get_data_path("zcta_crosswalk", "raw")
+    crosswalk = pd.read_csv(crosswalk_path, sep='|', dtype={'GEOID_ZCTA5_10': str, 'GEOID_ZCTA5_20': str})
+    
+    # 3. Calculate the Area-Based Allocation Factor
+    crosswalk['AREALAND_ZCTA5_10'] = pd.to_numeric(crosswalk['AREALAND_ZCTA5_10'], errors='coerce')
+    crosswalk['AREALAND_PART'] = pd.to_numeric(crosswalk['AREALAND_PART'], errors='coerce')
+    
+    crosswalk['AF'] = np.where(
+        crosswalk['AREALAND_ZCTA5_10'] > 0,
+        crosswalk['AREALAND_PART'] / crosswalk['AREALAND_ZCTA5_10'],
+        0
+    )
+    
+    # Keep only necessary crosswalk columns
+    cw_subset = crosswalk[['GEOID_ZCTA5_10', 'GEOID_ZCTA5_20', 'AF']]
+    
+    # 4. Merge pre-2020 data with the crosswalk
+    merged = df_pre_2020.merge(cw_subset, left_on=zip_col, right_on='GEOID_ZCTA5_10', how='inner')
+    
+    # 5. Apportion the historical population
+    merged['Adjusted_Pop'] = merged[pop_col] * merged['AF']
+    
+    # 6. Group by the NEW 2020 ZCTA and re-aggregate
+    group_cols = ['GEOID_ZCTA5_20', year_col] 
+    
+    # dynamically add state and county to aggregation if provided
+    agg_dict = {'Adjusted_Pop': 'sum'}
+    if state_col and state_col in merged.columns:
+        agg_dict[state_col] = 'first'
+    if county_col and county_col in merged.columns:
+        agg_dict[county_col] = 'first'
+        
+    harmonized_pre_2020 = merged.groupby(group_cols, as_index=False).agg(agg_dict)
+    
+    # 7. Rename columns to match standard input
+    harmonized_pre_2020.rename(columns={
+        'GEOID_ZCTA5_20': zip_col,
+        'Adjusted_Pop': pop_col
+    }, inplace=True)
+    
+    # 8. Recombine the dataset
+    final_df = pd.concat([harmonized_pre_2020, df_post_2020], ignore_index=True)
+    
+    # 9. Clean up formatting
+    final_df[pop_col] = final_df[pop_col].round(0)
+    final_df = final_df.sort_values(by=[zip_col, year_col]).reset_index(drop=True)
+    
+    return final_df
