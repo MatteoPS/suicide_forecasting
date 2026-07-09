@@ -9,7 +9,7 @@ __pycache__/
 
 # Data
 data/raw/
-
+data/external/
 *.xlsx
 *.pkl
 
@@ -19,6 +19,6 @@ data/raw/
 # OS files
 .DS_Store
 
-# Dynamical model .m and .mat
-notebooks/*.m
-data/external/
+
+# Notebooks dump
+notebooks/DUMP.ipynb
