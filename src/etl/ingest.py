@@ -229,3 +229,4 @@ def fetch_hcup_ahal(catalog, state_name: str, years: list, core_keys: list = Non
         raise ValueError(f"No AHAL data could be retrieved for {state_name}.")
 
     return pd.concat(dfs, ignore_index=True)
+
