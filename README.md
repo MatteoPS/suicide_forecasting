@@ -9,12 +9,8 @@
 ├── docs/              # Project documentation and data access instructions
 ├── notebooks/         # Exploratory and communicative work  
 ├── src/ 
-│   ├── data           # Data import, cleaning, transform
-│   ├── dynamic/       # Dynamic model of suicide contagion       
-│   ├── ensemble/      # Multi-model combination logic; weighted averaging; scoring rules
-│   ├── ml/            # LightGBM, RF, XGBoost, CatBoost, NN training and evaluation      
-│   ├── nlp/           # distilBERT pipelines; NVDRS-RAD narrative processing
-│   ├── statistical/   # Bayesian hierarchical models: Exponential Smoothing; ARIMA; CAR-ANOVA
+│   ├── etl/           # Data import, cleaning, transform
+│   ├── geospatial/    # SaTScan Analysis  
 │   └── utils/   
 └── tests/           
 ```
