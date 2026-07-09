@@ -2,10 +2,10 @@
 ```text
 .
 ├── config/            # Model configs, hyperparameters, YAML files
-├── data/
+├── data/              # All data — this is gitignored
 │   ├── external/
 │   ├── processed/
-│   └── raw            # All data — this is gitignored
+│   └── raw           
 ├── docs/              # Project documentation and data access instructions
 ├── notebooks/         # Exploratory and communicative work  
 ├── src/ 
