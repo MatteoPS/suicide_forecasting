@@ -3,8 +3,10 @@ paths:
     nvdrs: "data/raw/keyes_973_nvdrs_2023.csv"
     nvdrs_narratives: "data/raw/keyes_973_nvdrs_2023_narratives.csv"
     costal_counties: "data/raw/costal_counties_NOAA.csv"
-    fips_crosswalk: "data/raw/national_county.txt" # SOURCE: https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
-    zip_coordinates: "data/raw/2022_Gaz_zcta_national.txt" # SOURCE https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html
+    fips_crosswalk: "data/raw/national_county.txt"            # SOURCE: https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
+    zcta_crosswalk: "data/raw/tab20_zcta510_zcta520_natl.txt" # SOURCE: https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta510_zcta520_natl.txt 
+    zip_coordinates: "data/raw/2022_Gaz_zcta_national.txt"    # SOURCE: https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html
+    zip_to_state_county: "data/raw/uszipcode_static.csv"      # SOURCE: run the 'download_zip_state_county_map()' utility in scripts/setup_static_data.py to generate this static file locally using the `uszipcode` library.
   processed:
     wonder_state: "data/processed/WONDER_state_99-24.csv"
 
