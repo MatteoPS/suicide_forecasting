@@ -1,5 +1,4 @@
 import pandas as pd
-from pathlib import Path
 
 from src.etl.ingest import load_nvdrs, fetch_census
 from src.etl.transform import filter_nvdrs_suicides, harmonize_zcta_boundaries
