@@ -166,3 +166,8 @@ def harmonize_zcta_boundaries(df: pd.DataFrame, zip_col: str = 'ZIP', pop_col: s
     final_df = final_df.sort_values(by=[zip_col, year_col]).reset_index(drop=True)
     
     return final_df
+    
+def calc_pct_change(df, year_old, year_new):
+    return np.where(df[year_old] > 0, 
+                    ((df[year_new] - df[year_old]) / df[year_old]) * 100, 
+                    np.nan)

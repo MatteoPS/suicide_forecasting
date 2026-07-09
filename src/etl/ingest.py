@@ -91,6 +91,34 @@ def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county",
     df_final.rename(columns=variables_dict, inplace=True)
     return df_final
 
+
+def fetch_2010_decennial_population() -> pd.DataFrame:
+    """Fetches 2010 Decennial ZCTA population data to match fetch_census output."""
+    url = "https://api.census.gov/data/2010/dec/sf1"
+    params = {
+        "get": "NAME,P001001",
+        "for": "zip code tabulation area:*",
+        "key": CENSUS_API_KEY
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        raise ConnectionError(f"API Error {response.status_code}: {response.text}")
+
+    data = response.json()
+    df = pd.DataFrame(data[1:], columns=data[0])
+    
+    # Standardize columns to match the output of your fetch_census function
+    df.rename(columns={"NAME": "ZIP", "P001001": "Population"}, inplace=True)
+    df['ZIP'] = df['ZIP'].str.replace('ZCTA5 ', '', regex=False)
+    df['Year'] = 2010
+    df['state'] = None
+    df['Population'] = pd.to_numeric(df['Population'], errors='coerce')
+    
+    return df[['ZIP', 'Population', 'Year', 'state']]
+
+
 def fetch_hcup(catalog, state_name: str, db_type: Literal["sedd", "sid"], years: list, cols_to_pull: list, icd_prefix: str, icd_vals: list, return_icd_cols: bool = False) -> pd.DataFrame:
     """Builds a dynamic BigQuery SQL string and fetches HCUP data via Redivis."""
     
