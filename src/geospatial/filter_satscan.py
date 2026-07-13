@@ -2,16 +2,17 @@ import pandas as pd
 from src.utils.config import get_data_path, PROJECT_ROOT
 
 def create_regional_satscan_files(
+    nickname_regional: str,
     nickname: str, 
     state_names: list = None, 
     county_names: list = None
 ):
     """Filters global SaTScan artifacts for a specific region."""
     base_dir = PROJECT_ROOT / "data" / "processed" / "satscan"
-    out_dir = base_dir / nickname
+    out_dir = base_dir / nickname_regional
     out_dir.mkdir(parents=True, exist_ok=True)
     
-    print(f"Extracting SaTScan files for: {nickname}...")
+    print(f"Extracting SaTScan files for: {nickname_regional}...")
 
     def clean_zip(series):
         return series.astype(str).str.replace(r'\.0$', '', regex=True).str.strip().str.zfill(5)
@@ -24,25 +25,28 @@ def create_regional_satscan_files(
     zip_mapping['county'] = zip_mapping['county'].str.strip()
 
     if county_names:
-        regional_zips = zip_mapping[zip_mapping['county'].isin(county_names)]['ZIP'].tolist()
+        mask = zip_mapping['county'].isin(county_names)
+        if state_names:
+            mask = mask & zip_mapping['state'].isin(state_names)
+        regional_zips = zip_mapping[mask]['ZIP'].tolist()
     elif state_names:
         regional_zips = zip_mapping[zip_mapping['state'].isin(state_names)]['ZIP'].tolist()
     else:
-        raise ValueError("Provide either 'state_names' or 'county_names'.")
+        raise ValueError("Provide either 'county_names' + 'state_names' or 'state_names'.")
 
     # 2. Load Global Artifacts
-    coord_df = pd.read_csv(base_dir / "satscan_coordinates.csv", dtype={'ZIP': str})
+    coord_df = pd.read_csv(base_dir / f"{nickname}_full_geo.csv", dtype={'ZIP': str})
     coord_df['ZIP'] = clean_zip(coord_df['ZIP'])
     zips_with_coords = set(coord_df['ZIP'])
 
-    pop_df = pd.read_csv(base_dir / "satscan_population.csv", dtype={'ZIP': str})
+    pop_df = pd.read_csv(base_dir / f"{nickname}_full_pop.csv", dtype={'ZIP': str})
     pop_df['ZIP'] = clean_zip(pop_df['ZIP'])
     
-    cases_df = pd.read_csv(base_dir / "satscan_cases.csv", dtype={'ZIP': str})
+    cases_df = pd.read_csv(base_dir / f"{nickname}_full_cas.csv", dtype={'ZIP': str})
     cases_df['ZIP'] = clean_zip(cases_df['ZIP'])
     
     # Uses analytical file as the base for enriched
-    enriched_df = pd.read_csv(base_dir / "nvdrs_analytical.csv", dtype={'DerivedZip': str})
+    enriched_df = pd.read_csv(base_dir /f"{nickname}_nvdrs_analytical.csv", dtype={'DerivedZip': str})
     enriched_df.rename(columns={'DerivedZip': 'ZIP'}, inplace=True)
     enriched_df['ZIP'] = clean_zip(enriched_df['ZIP'])
 
@@ -60,16 +64,16 @@ def create_regional_satscan_files(
 
     # 4. Filter and Save Output Files
     reg_coord = coord_df[coord_df['ZIP'].isin(usable_zips)]
-    reg_coord.to_csv(out_dir / f"satscan_coordinates_{nickname}.csv", index=False)
+    reg_coord.to_csv(out_dir / f"{nickname_regional}_geo.csv", index=False)
 
     reg_pop = pop_df[pop_df['ZIP'].isin(usable_zips)]
-    reg_pop.to_csv(out_dir / f"satscan_population_{nickname}.csv", index=False)
+    reg_pop.to_csv(out_dir / f"{nickname_regional}_pop.csv", index=False)
 
     reg_cases = cases_df[cases_df['ZIP'].isin(usable_zips)]
-    reg_cases.to_csv(out_dir / f"satscan_cases_{nickname}.csv", index=False)
+    reg_cases.to_csv(out_dir / f"{nickname_regional}_cas.csv", index=False)
 
     reg_enriched = enriched_df[enriched_df['ZIP'].isin(usable_zips)]
-    reg_enriched.to_csv(out_dir / f"satscan_cases_enriched_{nickname}.csv", index=False)
+    reg_enriched.to_csv(out_dir / f"{nickname_regional}_enriched_cas.csv", index=False)
 
     print(f"Success! Regional files saved to: {out_dir}\n")
 

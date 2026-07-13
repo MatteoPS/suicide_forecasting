@@ -17,7 +17,9 @@ from src.utils.config import get_data_path, PROJECT_ROOT
 def prep_satscan_gui(
     nvdrs_cols: list = None, 
     pop_vars: dict = None, 
-    pop_years: range = range(2011, 2024)
+    pop_years: range = range(2011, 2024),
+    use_res_zip = True,
+    nickname: str = None
 ):
     """
     Ingests raw health and demographic data, applies strict geospatial validations, 
@@ -55,12 +57,15 @@ def prep_satscan_gui(
     nvdrs_df = load_nvdrs(file_key="nvdrs", data_folder="raw", usecols=nvdrs_cols)
     nvdrs_s_df = filter_nvdrs_suicides(nvdrs_df)
     nvdrs_s_df = nvdrs_s_df[nvdrs_s_df['DeathDate'] >= '2010-01-01'].copy()
-
-    # Location Logic: Prefer Injury location, fallback to Residence if missing
-    nvdrs_s_df['DerivedZip'] = nvdrs_s_df['InjuryZip'].replace(['', '00000', '99999'], float('NaN')).fillna(nvdrs_s_df['ResidenceZip'])
-    nvdrs_s_df = nvdrs_s_df.dropna(subset=['DerivedZip'])
+    if use_res_zip is True:
+        # Location Logic: Prefer Injury location, fallback to Residence if missing
+        nvdrs_s_df['DerivedZip'] = nvdrs_s_df['InjuryZip'].replace(['', '00000', '99999', '9999'], float('NaN')).fillna(nvdrs_s_df['ResidenceZip'])
+        nvdrs_s_df = nvdrs_s_df.dropna(subset=['DerivedZip'])
+    else:
+        nvdrs_s_df['DerivedZip'] = nvdrs_s_df['InjuryZip'].replace(['', '00000', '99999', '9999'], float('NaN'))
+        nvdrs_s_df = nvdrs_s_df.dropna(subset=['DerivedZip'])
     nvdrs_s_df['DerivedZip'] = clean_zip(nvdrs_s_df['DerivedZip'])
-    nvdrs_s_df = nvdrs_s_df[~nvdrs_s_df['DerivedZip'].isin(['nan', '00000', '99999'])]
+    nvdrs_s_df = nvdrs_s_df[~nvdrs_s_df['DerivedZip'].isin(['nan', '00000', '99999', '9999'])]
 
     # Aggregate to SaTScan requirement: [Location ID, Cases, Date]
     cases_df = nvdrs_s_df.groupby(['DerivedZip', 'DeathDate']).size().reset_index(name='Cases')
@@ -158,29 +163,37 @@ def prep_satscan_gui(
         dropped_df.fillna({'Census_Pop_Avg': 0, 'USPS_Population': 0}, inplace=True)
         dropped_df = dropped_df.sort_values(by='Cases', ascending=False)
         
-        dropped_df.to_csv(out_dir / "dropped_unmappable_cases.csv", index=False)
-        print(f"  ↳ Saved missingness analysis to 'dropped_unmappable_cases.csv'.")
+        dropped_df.to_csv(out_dir / f"{nickname}_dropped_unmappable_cases.csv", index=False)
+        print(f"  ↳ Saved missingness analysis to '{nickname}_dropped_unmappable_cases.csv'.")
     
-    # Safely enforce the drop to guarantee SaTScan stability
+    # Safely enforce the drop of unmappable ZIPs first
     initial_cases = len(cases_df)
     cases_df = cases_df[cases_df['ZIP'].isin(valid_coords)]
+    
+    # Extract year to match the population file timeframe
+    cases_df['Year'] = pd.to_datetime(cases_df['DeathDate']).dt.year
+
+    # Merge cases with population for that specific year and drop where population is zero
+    cases_merged = cases_df.merge(pop_final[['ZIP', 'Year', 'Population']], on=['ZIP', 'Year'], how='left')
+    cases_df = cases_merged[cases_merged['Population'] > 0].drop(columns=['Year', 'Population'])
+    
     dropped_cases_total = initial_cases - len(cases_df)
     
     pop_final = pop_final[pop_final['ZIP'].isin(valid_coords)]
     nvdrs_s_df = nvdrs_s_df[nvdrs_s_df['DerivedZip'].isin(valid_coords)]
     
     if dropped_cases_total > 0:
-        print(f"  ↳ Dropped {dropped_cases_total} total cases occurring in unmappable ZIPs.")
+        print(f"  ↳ Dropped {dropped_cases_total} total cases occurring in unmappable ZIPs or zero-population ZIP-years.")
 
 
     # --- 6. EXPORT ---
     print("Exporting mathematically validated artifacts...")
-    cases_df.to_csv(out_dir / "satscan_cases.csv", index=False)
-    pop_final.to_csv(out_dir / "satscan_population.csv", index=False)
-    coord_final.to_csv(out_dir / "satscan_coordinates.csv", index=False)
-    
+    cases_df.to_csv(out_dir / f"{nickname}_full_cas.csv", index=False)
+    pop_final.to_csv(out_dir / f"{nickname}_full_pop.csv", index=False)
+    coord_final.to_csv(out_dir / f"{nickname}_full_geo.csv", index=False)
+
     # Save the analytical baseline so it can be filtered regionally later
-    nvdrs_s_df.to_csv(out_dir / "nvdrs_analytical.csv", index=False)
+    nvdrs_s_df.to_csv(out_dir / f"{nickname}_nvdrs_analytical.csv", index=False)
 
     print(f"Success! Global files ready in: {out_dir}")
 
