@@ -23,3 +23,6 @@ data/processed/
 
 # Notebooks dump
 notebooks/DUMP.ipynb
+
+# Documentation
+docs/NVDRS_RAD_DataSharingAgreement_SIGNED.pdf
