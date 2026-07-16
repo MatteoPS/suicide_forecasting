@@ -1,15 +1,15 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def plot_zip_population_pivot(pivot_df, zip_list, county_col=None, state_col=None):
+def plot_zip_population_pivot(pivot_df, zip_list,zip_colname='DerivedZip', county_col=None, state_col=None):
     plt.figure(figsize=(12, 6))
     
     # 1. Handle MultiIndex if present
     plot_df = pivot_df.copy()
-    if 'ZIP' in plot_df.columns:
-        plot_df = plot_df.set_index('ZIP')
+    if zip_colname in plot_df.columns:
+        plot_df = plot_df.set_index(zip_colname)
     elif isinstance(plot_df.index, pd.MultiIndex):
-        plot_df = plot_df.reset_index().set_index(plot_df.index.names[0] if 'ZIP' not in plot_df.index.names else 'ZIP')
+        plot_df = plot_df.reset_index().set_index(plot_df.index.names[0] if zip_colname not in plot_df.index.names else zip_colname)
 
     # 2. Isolate ONLY the year columns to prevent plotting text/metric columns
     year_cols = [c for c in plot_df.columns if str(c).isdigit()]
