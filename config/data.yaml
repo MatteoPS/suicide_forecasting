@@ -9,20 +9,3 @@ paths:
     zip_to_state_county: "data/raw/uszipcode_static.csv"      # SOURCE: run the 'download_zip_state_county_map()' utility in scripts/setup_static_data.py to generate this static file locally using the `uszipcode` library.
   processed:
     wonder_state: "data/processed/WONDER_state_99-24.csv"
-
-#columns:
-#  county_id: 
-#  state_id: 
-#  zip_id: 
-#  date: 
-#  outcome_attempts: 
-#  outcome_deaths: 
-
-#date_range:
-#  start: 
-#  end: 
-
-#geographic_levels:
-#  primary: 
-#  secondary:
-    
