@@ -15,7 +15,7 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     geo_file : str
         Path to the geography file (format: zip, lat, lon).
     pop_file : str, optional
-        Path to the population file (format: zip, population). If provided, 
+        Path to the population file (format: zip, year, population). If provided, 
         clustering utilizes incidence rates (cases per 100K). Otherwise, raw counts are used.
     eps1_km : float
         Maximum spatial distance (kilometers) for neighborhood evaluation.
@@ -29,6 +29,7 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     pd.DataFrame
         Filtered dataframe containing only clustered records (noise removed).
     """
+    
     # 1. Load and prep spatial-temporal data
     cases = pd.read_csv(cas_file, header=None, names=['zip', 'n_case', 'date'], sep=r'\s+')
     geo = pd.read_csv(geo_file, header=None, names=['zip', 'lat', 'lon'], sep=r'\s+')
@@ -41,17 +42,31 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     baseline_date = cases['date'].min()
     cases['days'] = (cases['date'] - baseline_date).dt.days
     
+    # Extract year for population matching
+    cases['year'] = cases['date'].dt.year
+    
     # 2. Calculate sample weights for DBSCAN density evaluation
     if pop_file:
-        pop = pd.read_csv(pop_file, header=None, names=['zip', 'population'], sep=r'\s+')
+        # Load POP file with Year column
+        pop = pd.read_csv(pop_file, header=None, names=['zip', 'year', 'population'], sep=r'\s+')
         
-        # --- CRITICAL FIX: Standardize pop ZIP codes ---
+        # Standardize pop ZIP codes ---
         pop['zip'] = pop['zip'].astype(str).str.strip().str.zfill(5)
         
-        cases = cases.merge(pop, on='zip', how='left')
+        # Merge on BOTH zip and year to get the exact population for that specific case's year
+        cases = cases.merge(pop, on=['zip', 'year'], how='left')
+        
+        # Calculate incidence rate per 100K, handling zero-population ZIPs and NaN failures
+        cases['weight'] = np.where(
+            (cases['population'] > 0) & (cases['population'].notna()), 
+            (cases['n_case'] / cases['population']) * 100000, 
+            0.0
+        )
+        print("Population data provided: Weighting by Incidence Rate (per 100K, dynamically matched by Year).")
     else:
         cases['weight'] = cases['n_case']
-
+        print("No population data provided: Weighting by raw case counts.")
+    
     # Merge geographic coordinates
     df = cases.merge(geo, on='zip', how='inner')
     
@@ -87,12 +102,6 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     # 6. Execute Clustering
     db = DBSCAN(eps=eps1_km, min_samples=safe_min_samples, metric='precomputed')
     db.fit(combined_matrix, sample_weight=safe_weights)
-    # DEBUG PRINT
-    print(f"Max weight in data: {df['weight'].max()}")
-    print(f"Min weight in data (above 0): {df[df['weight'] > 0]['weight'].min()}")
-    print(f"Your safe_min_samples is: {safe_min_samples}")
-    print(f"Your max safe_weights is: {safe_weights.max()}")
-
     df['cluster'] = db.labels_
     
     # Filter out noise points (label -1)
