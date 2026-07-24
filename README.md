@@ -42,6 +42,8 @@ No data is in this repo. `data/` and `outputs/` are gitignored.
 - NVDRS-RAD, restricted, requires a signed data use agreement with CDC
 - HCUP SEDD and SID, restricted, accessed through Redivis
 - Census ACS 5-year and BRFSS, public
+  
+*"The National Violent Death Reporting System (NVDRS) is administered by the Centers for Disease Control and Prevention (CDC) by participating NVDRS jurisdictions. The findings and conclusions of this study are those of the authors alone and do not necessarily represent the official position of the CDC or of participating NVDRS jurisdictions."*
 
 ## Setup
 
