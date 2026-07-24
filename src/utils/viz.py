@@ -61,16 +61,40 @@ def plot_zip_population_pivot(pivot_df, zip_list,zip_colname='DerivedZip', count
     plt.tight_layout()
     plt.show()
 
-
-def visualize_st_dbscan_clusters(df_clusters, output_dir, nickname=""):
+def visualize_st_dbscan_clusters(df_clusters, output_dir="outputs", nickname="", top_n=None):
     """
     Generates three interactive HTML visualizations for ST-DBSCAN clusters.
+    
+    Parameters:
+    -----------
+    df_clusters : pd.DataFrame
+        The output dataframe from run_small_st_dbscan containing the 'cluster' column.
+    output_dir : str
+        Directory to save the HTML files.
+    nickname : str
+        Prefix for the saved HTML files.
+    top_n : int, optional
+        If provided, only plots the top N clusters with the most total cases.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     # Format file prefix
     prefix = f"{nickname}_" if nickname else ""
+    
+    total_clusters_count = df_clusters['cluster'].nunique()
+
+    # --- NEW LOGIC: Filter for Top N clusters ---
+    if top_n is not None and top_n < total_clusters_count:
+        # Group by cluster and sum the cases (since we expanded rows, sizing by count works)
+        cluster_sizes = df_clusters.groupby('cluster').size().reset_index(name='size')
+        # Sort descending and take the top N
+        top_clusters = cluster_sizes.sort_values(by='size', ascending=False).head(top_n)['cluster']
+        # Filter the original dataframe
+        df_clusters = df_clusters[df_clusters['cluster'].isin(top_clusters)].copy()
+        title_suffix = f" (Showing Top {top_n} of {total_clusters_count} Clusters)"
+    else:
+        title_suffix = f" (Total Clusters: {total_clusters_count})"
 
     # Ensure cluster ID is a string so Plotly treats it as a discrete color category
     df_clusters = df_clusters.copy()
@@ -79,7 +103,7 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir, nickname=""):
     # Sort by date for better timeline rendering
     df_clusters = df_clusters.sort_values('date')
 
-    print("Generating visualizations...")
+    print(f"Generating visualizations...{title_suffix}")
 
     # ---------------------------------------------------------
     # 1. 2D Interactive Map (Spatial Focus)
@@ -93,7 +117,7 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir, nickname=""):
         color="cluster_id",
         hover_name="zip",
         hover_data=["date", "n_case"],
-        title="ST-DBSCAN Clusters: Geographic View",
+        title=f"ST-DBSCAN Clusters: Geographic View{title_suffix}",
         mapbox_style="carto-positron",
         zoom=10
     )
@@ -113,7 +137,7 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir, nickname=""):
         z="days", 
         color="cluster_id",
         hover_data=["date", "zip"],
-        title="3D Space-Time Cluster Visualization",
+        title=f"3D Space-Time Cluster Visualization{title_suffix}",
         opacity=0.7
     )
     # Adjust aspect ratio so the time axis (Z) is stretched out
@@ -133,7 +157,7 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir, nickname=""):
         y="cluster_id",
         color="cluster_id",
         hover_data=["zip", "lat", "lon"],
-        title="Cluster Lifespans / Timeline",
+        title=f"Cluster Lifespans / Timeline{title_suffix}",
     )
     # Update layout to make it look like a Gantt chart of events
     fig_time.update_traces(marker=dict(size=10, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')))
