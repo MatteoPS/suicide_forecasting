@@ -1,0 +1,28 @@
+model:
+  type: 
+  spatial_structure: 
+
+priors:
+  intercept:
+    distribution: 
+    mu: 
+    sigma: 
+  slope:
+    distribution: 
+    mu: 
+    sigma: 
+  spatial_smoothing:
+    distribution: 
+    param1: 
+    param2: 
+
+sampling:
+  draws: 
+  tune: 
+  chains: 
+  target_accept: 
+
+spatial:
+  method: 
+  neighbors:
+    

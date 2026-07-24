@@ -1,0 +1,21 @@
+contagion_model:
+  compartments: 
+  beta_init: 
+  gamma_init: 
+  population_scale: 
+
+eakf:
+  ensemble_size: 
+  inflation_factor: 
+  localization_radius: 
+
+assimilation:
+  data_source: 
+  update_frequency: 
+  spinup_period: 
+
+forecast:
+  horizon_months: 
+  n_ensemble_members: 
+  output_quantiles:
+    

@@ -1,0 +1,22 @@
+models_to_combine:
+  - 
+  - 
+  - 
+
+weighting:
+  strategy: 
+  metric: 
+  window_size: 
+
+scoring:
+  rules:
+    - 
+    - 
+  horizons_months:
+    - 
+    - 
+
+output:
+  quantiles: 
+  point_estimate:
+    
