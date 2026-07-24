@@ -19,7 +19,6 @@ This repo works at ZCTA resolution over 2010 to 2023 and separates the two signa
 | Regional subsetting of SaTScan artifacts | `src/geospatial/filter_satscan.py` | Working |
 | SaTScan runs and parameter justification | `notebooks/1.1` | Five configurations run and interpreted; two more specified|
 | ST-DBSCAN, rate-weighted, dense | `src/geospatial/st_dbscan.py`, `notebooks/1.2` | Implemented and running; parameters not calibrated (see Known issues) |
-| Effective-distance scaling law | `notebooks/1.2-NVDRS-ScalingLaw` | Design only, not executed |
 | Time series forecasting (ETS, AutoARIMA, LightGBM) | `notebooks/0.1` | Exploratory. No held-out evaluation yet; first passes were noise dominated |
 | Ensemble and dynamical layers | `config/ensemble.yaml`, `config/dynamical.yaml` | Empty scaffolding |
 | Tests | `tests/` | Not implemented |
