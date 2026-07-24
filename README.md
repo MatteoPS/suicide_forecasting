@@ -7,7 +7,8 @@
 │   ├── processed/
 │   └── raw           
 ├── docs/              # Project documentation and data access instructions
-├── notebooks/         # Exploratory and communicative work  
+├── notebooks/         # Exploratory and communicative work
+├── outputs/           # All outputs — this is gitignored
 ├── src/ 
 │   ├── etl/           # Data import, cleaning, transform
 │   ├── geospatial/    # SaTScan Analysis  
