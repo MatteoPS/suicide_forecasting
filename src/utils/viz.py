@@ -1,7 +1,142 @@
+import math
+import os
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
-import os
+
+
+def plot_grouped_series(pivot_df, groups: dict, title: str, ylabel: str = "Incident Count",
+                        xlabel: str = "Date", legend_title: str = "Group",
+                        figsize=(15, 7), cmap: str = "tab10", ax=None):
+    """Plots many columns, one colour per group, one legend entry per group.
+
+    Moved out of notebooks/0.1. `groups` maps a group name to the columns
+    belonging to it, e.g. {'Arizona': ('Pima, AZ', 'Pinal, AZ')}. Columns
+    absent from `pivot_df` are skipped and reported, rather than raising -
+    county coverage varies by NVDRS site and year.
+
+    Returns the Axes so callers can adjust it further.
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=figsize)
+
+    colors = plt.get_cmap(cmap, len(groups))
+    missing = []
+
+    for group_idx, (group, columns) in enumerate(groups.items()):
+        color = colors(group_idx)
+        first_in_group = True
+        for column in columns:
+            if column not in pivot_df.columns:
+                missing.append(column)
+                continue
+            # Only the first column of a group carries a legend label.
+            ax.plot(pivot_df.index, pivot_df[column], color=color,
+                    label=group if first_in_group else "_nolegend_")
+            first_in_group = False
+
+    if missing:
+        print(f"Warning: {len(missing)} column(s) not in the data and not plotted: {missing}")
+
+    ax.set_title(title)
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel)
+    ax.legend(title=legend_title)
+    return ax
+
+
+def plot_source_comparison(sources: dict, columns: list, title: str,
+                           start=None, end=None, ncols: int = 2,
+                           colors: dict = None, figsize_per_row: float = 2.0):
+    """One small-multiple per column, overlaying several data sources.
+
+    Moved out of notebooks/0.5, which compares NVDRS against CDC WONDER state
+    by state. `sources` maps a label to a DataFrame indexed by date with one
+    column per geography.
+
+    A source missing a requested column is skipped *and reported*. The notebook
+    version skipped silently, which made an empty panel indistinguishable from
+    a genuine run of zeros.
+
+    Returns (fig, axes).
+    """
+    nrows = math.ceil(len(columns) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(15, figsize_per_row * nrows),
+                             sharex=True, squeeze=False)
+    axes = axes.flatten()
+
+    styles = colors or {}
+    missing = []
+
+    for i, column in enumerate(columns):
+        ax = axes[i]
+        for label, frame in sources.items():
+            if column not in frame.columns:
+                missing.append((label, column))
+                continue
+            subset = frame.loc[start:end]
+            ax.plot(subset.index, subset[column], lw=1, alpha=0.7,
+                    color=styles.get(label),
+                    label=label if i == 0 else "")
+        ax.set_title(column, fontsize=9)
+        ax.tick_params(axis="both", labelsize=8)
+
+    for j in range(len(columns), len(axes)):
+        fig.delaxes(axes[j])
+
+    if missing:
+        print(f"Warning: {len(missing)} series not plotted (source, column): {missing}")
+
+    fig.suptitle(title, fontsize=12)
+    fig.legend(loc="upper left")
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    return fig, axes
+
+
+def plot_daily_case_totals(cases: pd.DataFrame, title: str = "Overall Suicide Cases Over Time",
+                           ylabel: str = "Total Cases", figsize=(12, 6), ax=None):
+    """Plots the national daily total from a SaTScan case frame.
+
+    Moved out of notebooks/1.2. Expects the output of
+    `src.geospatial.satscan_io.read_satscan_cases`.
+    """
+    from src.geospatial.satscan_io import daily_case_totals
+
+    if ax is None:
+        _, ax = plt.subplots(figsize=figsize)
+
+    daily_case_totals(cases).plot(ax=ax, title=title, ylabel=ylabel)
+    return ax
+
+
+def plot_forecast_grid(actual: dict, forecasts: dict, columns: list, plot_len: int,
+                       title: str, ncols: int = 2):
+    """One panel per series, showing the observed tail plus each forecast.
+
+    Moved out of notebooks/0.1. `actual` and `forecasts` are keyed by column
+    name; `forecasts[column]` is itself a dict of {model name: prediction}.
+    Values are darts TimeSeries, which supply their own `.plot(ax=...)`.
+
+    Returns (fig, axes).
+    """
+    nrows = math.ceil(len(columns) / ncols)
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(15, 4 * nrows),
+                             constrained_layout=True, squeeze=False)
+    axes = axes.flatten()
+    fig.suptitle(title, fontsize=16)
+
+    for i, column in enumerate(columns):
+        actual[column][-plot_len:].plot(ax=axes[i], label="Actual")
+        for model_name, prediction in forecasts[column].items():
+            prediction.plot(ax=axes[i], label=model_name, lw=2)
+        axes[i].set_title(column)
+        axes[i].legend()
+
+    for j in range(len(columns), len(axes)):
+        axes[j].axis("off")
+
+    return fig, axes
 
 
 def plot_zip_population_pivot(pivot_df, zip_list,zip_colname='DerivedZip', county_col=None, state_col=None):

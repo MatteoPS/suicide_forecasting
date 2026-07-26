@@ -7,12 +7,16 @@ dependencies:
     - pandas
     - numpy
     - matplotlib
+    - plotly          # src/utils/viz.py
+    - scikit-learn    # src/geospatial/st_dbscan.py
+    - lightgbm        # darts LightGBMModel, notebooks/0.1
     - python-dotenv
     - requests
     - pyyaml
     - ipykernel
     - python-levenshtein
     - ipywidgets
+    - pytest          # tests/
     - pip
     - pip:
         - uszipcode

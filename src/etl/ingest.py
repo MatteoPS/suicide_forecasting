@@ -48,6 +48,22 @@ def load_brfss(year: int | str, brfss_path: str | None = None) -> pd.DataFrame:
     return pd.read_sas(base_file, format='xport')
 
 
+def load_wonder_state(file_key: str = "wonder_state", data_folder: str = "processed") -> pd.DataFrame:
+    """Loads the CDC WONDER state-level monthly death counts, pivoted for plotting.
+
+    The source is a manual export from https://wonder.cdc.gov/mcd.html filtered
+    to ICD-10 X60-X84, Y87.0 and U03. WONDER dates a month as 'YYYY/MM'; those
+    are moved to month-end so the index lines up with a pandas 'ME' resample of
+    the NVDRS daily counts.
+
+    Returns a DataFrame indexed by month-end date with one column per state.
+    """
+    path = get_data_path(file_key, data_folder)
+    df = pd.read_csv(path)
+    df["Date"] = pd.to_datetime(df["Month Code"], format="%Y/%m") + pd.offsets.MonthEnd(0)
+    return df.pivot(index="Date", columns="State", values="Deaths")
+
+
 def fetch_census(variables_dict: dict, years: list, geo_level: Literal["county", "state", "zip"] = "county", states: str | list = "*") -> pd.DataFrame:
     """Fetches ACS 5-Year Data Profiles from the US Census API."""
     

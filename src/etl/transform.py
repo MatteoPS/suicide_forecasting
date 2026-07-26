@@ -168,6 +168,97 @@ def harmonize_zcta_boundaries(df: pd.DataFrame, zip_col: str = 'ZIP', pop_col: s
     return final_df
     
 def calc_pct_change(df, year_old, year_new):
-    return np.where(df[year_old] > 0, 
-                    ((df[year_new] - df[year_old]) / df[year_old]) * 100, 
+    return np.where(df[year_old] > 0,
+                    ((df[year_new] - df[year_old]) / df[year_old]) * 100,
                     np.nan)
+
+
+# --- HCUP -------------------------------------------------------------------
+# Moved out of notebooks/0.4. Behaviour is unchanged from the notebook version;
+# see the caveat in clean_hcup_missing_codes about NaN stringification.
+
+HCUP_MISSING_CODES = [-9999, -9998, -99, -9, '-9999', '-9998', '-99', '-9']
+
+# Identifier columns that arrive with inconsistent formatting across states and
+# years, and therefore have to be normalized before they can be merged on.
+HCUP_ID_COLS = ['DSHOSPID', 'HOSPID', 'AYEAR', 'YEAR', 'KEY']
+
+
+def clean_hcup_missing_codes(df: pd.DataFrame, id_cols: list = None) -> pd.DataFrame:
+    """Replace HCUP sentinel missing codes with NaN and normalize ID columns.
+
+    HCUP encodes missingness as negative sentinels (-9, -99, -9998, -9999),
+    which would otherwise be read as real values. The identifier columns are
+    then stripped of float suffixes ('1234.0') and leading zeros so that the
+    same hospital compares equal across a CORE and an AHAL file.
+
+    Caveat carried over from the notebook: the final `astype(str)` turns NaN
+    into the literal string 'nan'. Rows with a missing identifier will
+    therefore match each other on merge. Filter on NaN before merging if that
+    matters for your analysis.
+
+    Operates in place and also returns the frame, matching the notebook's use.
+    """
+    if id_cols is None:
+        id_cols = HCUP_ID_COLS
+
+    df.replace(HCUP_MISSING_CODES, np.nan, inplace=True)
+
+    for col in id_cols:
+        if col in df.columns:
+            mask = df[col].notna()
+            df.loc[mask, col] = (
+                df.loc[mask, col]
+                .astype(str)
+                .str.replace(r'\.0$', '', regex=True)
+                .str.strip()
+                .str.replace(r'^0+(?!$)', '', regex=True)
+            )
+            df[col] = df[col].astype(str)
+
+    return df
+
+
+def smart_merge_ahal(df_core: pd.DataFrame, df_ahal: pd.DataFrame) -> pd.DataFrame:
+    """Attach AHAL hospital attributes to a CORE discharge file.
+
+    HCUP ships the hospital crosswalk in two incompatible shapes:
+
+    * patient-level (Iowa and friends), keyed by the discharge KEY;
+    * hospital-level (most states), keyed by HOSPID or DSHOSPID plus YEAR.
+
+    Which hospital identifier is populated also varies by state and year, so
+    the merge key is chosen from whichever column actually carries data. If
+    neither does, the function gives up and returns the CORE frame with an
+    empty HFIPSSTCO so downstream geocoding degrades to NaN rather than
+    raising.
+    """
+    if df_core.empty or df_ahal.empty:
+        return df_core
+
+    # A. Patient-level crosswalk: both sides carry the discharge KEY.
+    if 'KEY' in df_core.columns and 'KEY' in df_ahal.columns:
+        overlap = [c for c in df_ahal.columns if c in df_core.columns and c != 'KEY']
+        ahal_clean = df_ahal.drop(columns=overlap, errors='ignore')
+        return df_core.merge(ahal_clean, on='KEY', how='left')
+
+    # B. Hospital-level crosswalk: merge on a hospital ID plus the year.
+    if 'AYEAR' in df_core.columns:
+        df_core = df_core.rename(columns={'AYEAR': 'YEAR'})
+
+    has_hospid = 'HOSPID' in df_core.columns and df_core['HOSPID'].notna().sum() > 0
+    has_dshospid = 'DSHOSPID' in df_core.columns and df_core['DSHOSPID'].notna().sum() > 0
+
+    if has_hospid:
+        merge_key, drop_key = 'HOSPID', 'DSHOSPID'
+    elif has_dshospid:
+        merge_key, drop_key = 'DSHOSPID', 'HOSPID'
+    else:
+        df_core['HFIPSSTCO'] = np.nan
+        return df_core
+
+    ahal_clean = df_ahal.drop(columns=[drop_key], errors='ignore')
+    df_core[merge_key] = df_core[merge_key].astype(str)
+    ahal_clean[merge_key] = ahal_clean[merge_key].astype(str)
+
+    return df_core.merge(ahal_clean, on=[merge_key, 'YEAR'], how='left')
