@@ -19,9 +19,9 @@ This repo works at ZCTA resolution over 2010 to 2023 and separates the two signa
 | Regional subsetting of SaTScan artifacts | `src/geospatial/filter_satscan.py` | Working |
 | SaTScan runs and parameter justification | `notebooks/1.1` | Five configurations run and interpreted; two more specified|
 | ST-DBSCAN, rate-weighted, dense | `src/geospatial/st_dbscan.py`, `notebooks/1.2` | Implemented and running; parameters not calibrated (see Known issues) |
-| Time series forecasting (ETS, AutoARIMA, LightGBM) | `notebooks/0.1` | Exploratory. No held-out evaluation yet; first passes were noise dominated |
+| Time series forecasting (ETS, AutoARIMA, LightGBM) | `src/statistical/baselines.py`, `notebooks/0.1` | Exploratory. No held-out evaluation yet; first passes were noise dominated |
 | Ensemble and dynamical layers | `config/ensemble.yaml`, `config/dynamical.yaml` | Empty scaffolding |
-| Tests | `tests/` | Not implemented |
+| Tests | `tests/` | Working. ETL, geospatial and pipeline layers covered; model-layer tests are declared and skip until those modules exist |
 
 ## What the detection layer has shown
 
@@ -55,6 +55,21 @@ conda activate suicide_forecast
 `.env` requires `CENSUS_API_KEY`, `REDIVIS_USERNAME`, `REDIVIS_ORGANIZATION`, and `BRFSS_PATH`.
 
 SaTScan is a separate install. This repo generates its input files and interprets its output, it does not vendor the binary.
+
+## Tests
+
+```bash
+pytest
+```
+
+No test reads a real dataset. NVDRS and BRFSS are large and restricted, so every fixture builds a handful of synthetic rows with the same shape as the real files, and the Census API, Redivis and `uszipcode` are stubbed at the boundary. `tests/conftest.py` installs placeholder credentials before `src` is imported, so a real `.env` can never leak a live API key into a test run.
+
+Two tests are `xfail` on purpose. They describe behaviour the surrounding code implies but does not deliver, and the reason strings say exactly what:
+
+- `filter_nvdrs_suicides` keeps one row per multi-person incident, which undercounts a "Multiple suicides" incident where no decedent is labelled `Both victim and suspect`.
+- `aggregate_nvdrs_daily(df, geo_level='state')` pivots on `geo_col` (default `DeathFIPS`), so it returns county columns while its two sibling aggregators return state columns. Pass `geo_col='DeathState'` explicitly.
+
+Tests for `src/ml/`, `src/dynamical/`, `src/ensemble/` and the Bayesian spatial model are declared and skip with a reason until those modules land. `pytest -m notimplemented` lists them.
 
 ## Scope
 
