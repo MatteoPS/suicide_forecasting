@@ -3,16 +3,16 @@
 Two things drive the design of this file.
 
 1. `src.utils.config` raises at *import* time when the Census / Redivis
-   credentials are missing, so stub credentials have to be in the environment
-   before any test module imports anything under `src`. conftest.py is imported
-   before test modules, which makes this the right place for it. `setdefault`
-   plus `load_dotenv`'s no-override behaviour means a real `.env` sitting next
-   to the repo can never leak a live API key into the suite.
+    credentials are missing, so stub credentials have to be in the environment
+    before any test module imports anything under `src`. conftest.py is imported
+    before test modules, which makes this the right place for it. `setdefault`
+    plus `load_dotenv`'s no-override behaviour means a real `.env` sitting next
+    to the repo can never leak a live API key into the suite.
 
 2. No test in this suite reads a real dataset. NVDRS and BRFSS are large and
-   restricted; every fixture here builds a handful of synthetic rows with the
-   same *shape* as the real files. Anything that would hit the Census API,
-   Redivis, or a multi-GB CSV is monkeypatched at the boundary.
+    restricted; every fixture here builds a handful of synthetic rows with the
+    same *shape* as the real files. Anything that would hit the Census API,
+    Redivis, or a multi-GB CSV is monkeypatched at the boundary.
 """
 import os
 
@@ -38,12 +38,11 @@ def nvdrs_frame():
     """A minimal NVDRS-shaped frame covering every incident category branch.
 
     Five incidents, deliberately chosen:
-      1  single suicide                       -> kept
-      2  single suicide                       -> kept
-      3  homicide followed by suicide, 2 rows -> only the 'Both victim and
-                                                 suspect' row should survive
-      4  single homicide                      -> dropped (no 'suicide' in label)
-      5  multiple suicides, 2 rows            -> both are genuine suicides
+        1  single suicide                       -> kept
+        2  single suicide                       -> kept
+        3  homicide followed by suicide, 2 rows -> only the 'Both victim and suspect' row should survive
+        4  single homicide                      -> dropped (no 'suicide' in label)
+        5  multiple suicides, 2 rows            -> both are genuine suicides
     """
     rows = [
         # IncidentID, Category, PersonType, DeathDate, InjuryDate, State, FIPS, InjuryZip, ResidenceZip
@@ -272,7 +271,7 @@ def catalog(fake_org, monkeypatch):
 
 class FakeZipResult:
     def __init__(self, lat=None, lng=None, major_city=None, county=None,
-                 state=None, zipcode_type="Standard", population=None):
+                state=None, zipcode_type="Standard", population=None):
         self.lat = lat
         self.lng = lng
         self.major_city = major_city
@@ -333,7 +332,7 @@ def nvdrs_rows():
             ("6", "Single homicide", "Victim", "2015-03-05", "10001", "10001"),
         ],
         columns=["IncidentID", "IncidentCategory_c", "PersonType",
-                 "DeathDate", "InjuryZip", "ResidenceZip"],
+                "DeathDate", "InjuryZip", "ResidenceZip"],
     )
 
 
@@ -367,7 +366,7 @@ def zcta_crosswalk_file(tmp_path):
 
 @pytest.fixture
 def prep_env(tmp_path, monkeypatch, nvdrs_rows, gazetteer_file,
-             zcta_crosswalk_file, fake_search_engine):
+            zcta_crosswalk_file, fake_search_engine):
     """Wires every external dependency of prep_satscan_gui to a local stub.
 
     Mutate `prep_env['state']['populations']` before calling the function to
@@ -384,7 +383,7 @@ def prep_env(tmp_path, monkeypatch, nvdrs_rows, gazetteer_file,
     def fake_fetch_census(variables_dict, years, geo_level="county", states="*"):
         rows = [
             {"ZTCA5": f"ZCTA5 {z}", "Population": str(p), "ZIP": z,
-             "Year": y, "state": None}
+            "Year": y, "state": None}
             for y in years for z, p in state["populations"].items()
         ]
         # fetch_census hands back the raw Census column name; prep renames it.

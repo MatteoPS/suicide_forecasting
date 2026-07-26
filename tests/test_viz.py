@@ -297,6 +297,6 @@ def test_zip_pivot_ignores_non_year_columns(population_pivot):
 
 def test_zip_pivot_labels_with_county_and_state(population_pivot):
     plot_zip_population_pivot(population_pivot, ["10001"],
-                              county_col="County", state_col="State")
+                                county_col="County", state_col="State")
     labels = [t.get_text() for t in plt.gca().get_legend().get_texts()]
     assert labels == ["ZIP 10001 (New York, NY)"]

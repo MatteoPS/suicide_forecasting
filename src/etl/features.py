@@ -1,7 +1,6 @@
 """Turning NVDRS incident rows into gap-free, resampled time series.
 
-Extracted from notebooks/0.1 and notebooks/0.5, which both repeated the same
-three steps: aggregate to daily counts, reindex onto a complete daily calendar
+3 steps: aggregate to daily counts, reindex onto a complete daily calendar
 so absent days read as zero rather than as gaps, then resample.
 
 `darts` is imported inside `to_darts_timeseries` rather than at module scope so
