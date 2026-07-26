@@ -1,7 +1,12 @@
 import numpy as np
-import pandas as pd
 from sklearn.metrics.pairwise import haversine_distances
 from sklearn.cluster import DBSCAN
+
+from src.geospatial.satscan_io import (
+    read_satscan_cases,
+    read_satscan_geo,
+    read_satscan_pop,
+)
 
 def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_days=14, min_threshold=5):
     """
@@ -31,14 +36,11 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     """
     
     # 1. Load and prep spatial-temporal data
-    cases = pd.read_csv(cas_file, header=None, names=['zip', 'n_case', 'date'], sep=r'\s+')
-    geo = pd.read_csv(geo_file, header=None, names=['zip', 'lat', 'lon'], sep=r'\s+')
-    
-    # --- CRITICAL FIX: Standardize ZIP codes as strings to ensure merges work ---
-    cases['zip'] = cases['zip'].astype(str).str.strip().str.zfill(5)
-    geo['zip'] = geo['zip'].astype(str).str.strip().str.zfill(5)
-    
-    cases['date'] = pd.to_datetime(cases['date'])
+    # The readers standardize ZIP codes to zero-padded strings, without which
+    # the merges below silently return nothing.
+    cases = read_satscan_cases(cas_file)
+    geo = read_satscan_geo(geo_file)
+
     baseline_date = cases['date'].min()
     cases['days'] = (cases['date'] - baseline_date).dt.days
     
@@ -47,12 +49,8 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     
     # 2. Calculate sample weights for DBSCAN density evaluation
     if pop_file:
-        # Load POP file with Year column
-        pop = pd.read_csv(pop_file, header=None, names=['zip', 'year', 'population'], sep=r'\s+')
-        
-        # Standardize pop ZIP codes ---
-        pop['zip'] = pop['zip'].astype(str).str.strip().str.zfill(5)
-        
+        pop = read_satscan_pop(pop_file)
+
         # Merge on BOTH zip and year to get the exact population for that specific case's year
         cases = cases.merge(pop, on=['zip', 'year'], how='left')
         
