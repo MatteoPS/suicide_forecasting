@@ -24,6 +24,9 @@ data/processed/
 # Notebooks dump
 notebooks/DUMP.ipynb
 
+# Jupyter checkpoint backups
+.ipynb_checkpoints/
+
 # Documentation
 docs/NVDRS_RAD_DataSharingAgreement_SIGNED.pdf
 
