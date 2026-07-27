@@ -216,7 +216,7 @@ def cluster_frame():
                 "zip": f"1000{cluster}", "n_case": 1,
                 "date": pd.Timestamp("2015-01-01") + pd.Timedelta(days=i),
                 "days": i, "lat": 40.75 + cluster * 0.01, "lon": -73.99,
-                "cluster": cluster,
+                "cluster": cluster, "weight": 1, "weight_type": "count",
             })
     return pd.DataFrame(rows)
 

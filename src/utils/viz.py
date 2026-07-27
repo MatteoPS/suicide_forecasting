@@ -47,23 +47,19 @@ def plot_grouped_series(pivot_df, groups: dict, title: str, ylabel: str = "Incid
 
 
 def plot_source_comparison(sources: dict, columns: list, title: str,
-                           start=None, end=None, ncols: int = 2,
-                           colors: dict = None, figsize_per_row: float = 2.0):
+                            start=None, end=None, ncols: int = 2,
+                            colors: dict = None, figsize_per_row: float = 2.0):
     """One small-multiple per column, overlaying several data sources.
 
-    Moved out of notebooks/0.5, which compares NVDRS against CDC WONDER state
-    by state. `sources` maps a label to a DataFrame indexed by date with one
-    column per geography.
-
-    A source missing a requested column is skipped *and reported*. The notebook
-    version skipped silently, which made an empty panel indistinguishable from
-    a genuine run of zeros.
+    Compares NVDRS against CDC WONDER state by state. 
+    `sources` maps a label to a DataFrame indexed 
+    by date with one column per geography.
 
     Returns (fig, axes).
     """
     nrows = math.ceil(len(columns) / ncols)
     fig, axes = plt.subplots(nrows, ncols, figsize=(15, figsize_per_row * nrows),
-                             sharex=True, squeeze=False)
+                            sharex=True, squeeze=False)
     axes = axes.flatten()
 
     styles = colors or {}
@@ -219,7 +215,7 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir="outputs", nickname="",
     
     total_clusters_count = df_clusters['cluster'].nunique()
 
-    # --- NEW LOGIC: Filter for Top N clusters ---
+    # --- Filter for Top N clusters ---
     if top_n is not None and top_n < total_clusters_count:
         # Group by cluster and sum the cases (since we expanded rows, sizing by count works)
         cluster_sizes = df_clusters.groupby('cluster').size().reset_index(name='size')
@@ -245,15 +241,25 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir="outputs", nickname="",
     # ---------------------------------------------------------
     # Plots the points on a street map of NYC. 
     # Great for seeing *where* clusters happened.
-    fig_map = px.scatter_mapbox(
+    if df_clusters['weight_type'].iloc[0] == 'rate':
+        size_col = 'weight'
+        size_label = 'Incidence rate (per 100K)'
+    else:
+        df_clusters['zip_case_count'] = df_clusters.groupby(['cluster', 'zip'])['zip'].transform('size')
+        size_col = 'zip_case_count'
+        size_label = 'Cases in ZIP'
+
+    fig_map = px.scatter_map(
         df_clusters, 
         lat="lat", 
         lon="lon", 
         color="cluster_id",
+        size=size_col,
+        size_max=20,
         hover_name="zip",
-        hover_data=["date", "n_case"],
-        title=f"ST-DBSCAN Clusters: Geographic View{title_suffix}",
-        mapbox_style="carto-positron",
+        hover_data=["date", "n_case", "weight"],
+        title=f"ST-DBSCAN Clusters: Geographic View{title_suffix} — dot size: {size_label}",
+        map_style="carto-positron",
         zoom=10
     )
     fig_map.write_html(os.path.join(output_dir, f"{prefix}1_cluster_map.html"))
