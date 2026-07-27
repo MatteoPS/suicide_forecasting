@@ -1,10 +1,13 @@
+import numpy as np
 import math
 import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
+from scipy.spatial import ConvexHull
 
 def plot_grouped_series(pivot_df, groups: dict, title: str, ylabel: str = "Incident Count",
                         xlabel: str = "Date", legend_title: str = "Group",
@@ -236,40 +239,58 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir="outputs", nickname="",
 
     print(f"Generating visualizations...{title_suffix}")
 
-    # ---------------------------------------------------------
+# ---------------------------------------------------------
     # 1. 2D Interactive Map (Spatial Focus)
     # ---------------------------------------------------------
-    # Plots the points on a street map of NYC. 
-    # Great for seeing *where* clusters happened.
-    if df_clusters['weight_type'].iloc[0] == 'rate':
-        size_col = 'weight'
-        size_label = 'Incidence rate (per 100K)'
-    else:
-        df_clusters['zip_case_count'] = df_clusters.groupby(['cluster', 'zip'])['zip'].transform('size')
-        size_col = 'zip_case_count'
-        size_label = 'Cases in ZIP'
-
-    # Floor size values so isolated single-case points stay visible on the
-    # map instead of shrinking to near-invisible dots.
-    df_clusters['_size_display'] = df_clusters[size_col].clip(lower=df_clusters[size_col].max() * 0.15)
-
+    # Points are the individual cases; the shaded polygon behind each cluster
+    # is its convex hull, i.e. the footprint the algorithm actually found
+    # rather than a circle imposed on it.
     fig_map = px.scatter_map(
-        df_clusters, 
-        lat="lat", 
-        lon="lon", 
+        df_clusters,
+        lat="lat",
+        lon="lon",
         color="cluster_id",
-        size="_size_display",
-        size_max=40,
         hover_name="zip",
         hover_data=["date", "n_case", "weight"],
-        title=f"ST-DBSCAN Clusters: Geographic View{title_suffix} — dot size: {size_label}",
+        title=f"ST-DBSCAN Clusters: Geographic View{title_suffix}",
         map_style="carto-positron",
         zoom=10,
-        opacity=0.1
+        opacity=0.6,
     )
+    fig_map.update_traces(marker=dict(size=8))
+
+    # px assigns one colour per cluster_id; reuse it so hulls match their points.
+    colour_of = {t.name: t.marker.color for t in fig_map.data}
+
+    no_polygon = []
+    for cid, grp in df_clusters.groupby('cluster'):
+        label = f"Cluster {cid}"
+        pts = grp[['lon', 'lat']].drop_duplicates().values
+        if len(pts) < 3:
+            no_polygon.append(cid)
+            continue
+        try:
+            ring = pts[ConvexHull(pts).vertices]
+        except Exception:      # perfectly collinear points: no polygon
+            no_polygon.append(cid)
+            continue
+        ring = np.vstack([ring, ring[:1]])          # close the ring
+        colour = colour_of.get(label, '#888888')
+        fig_map.add_trace(go.Scattermap(
+            lon=ring[:, 0], lat=ring[:, 1],
+            mode='lines', fill='toself',
+            fillcolor=_to_rgba(colour, 0.25),
+            line=dict(color=colour, width=2),
+            name=label, legendgroup=label, showlegend=False,
+            hoverinfo='skip',
+        ))
+
+    if no_polygon:
+        print(f"Note: {len(no_polygon)} cluster(s) span fewer than three distinct "
+              f"locations and have no footprint drawn: {sorted(no_polygon)}")
+
     fig_map.write_html(os.path.join(output_dir, f"{prefix}1_cluster_map.html"))
     print(f"- Saved {prefix}1_cluster_map.html")
-
     # ---------------------------------------------------------
     # 2. 3D Space-Time Plot (Spatiotemporal Focus)
     # ---------------------------------------------------------
@@ -311,3 +332,122 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir="outputs", nickname="",
     print(f"- Saved {prefix}3_cluster_timeline.html")
     
     print("Done! Open the HTML files in any web browser to explore.")
+
+
+def _to_rgba(colour, alpha):
+    """Accept '#rrggbb' or 'rgb(r,g,b)' and return an rgba() string, so a
+    translucent fill doesn't also wash out the outline."""
+    if colour.startswith('#'):
+        r, g, b = (int(colour[i:i + 2], 16) for i in (1, 3, 5))
+    else:
+        r, g, b = (float(v) for v in colour.strip('rgb()').split(','))
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
+def visualize_st_dbscan_hulls(df_clusters, oe_df=None, output_dir="outputs",
+                              nickname="", top_n=None, zoom=9):
+    """
+    Exploratory map: one filled footprint per ST-DBSCAN cluster, plus its
+    member cases as points.
+
+    The footprint is the convex hull of the cluster's ZIP centroids, so it
+    shows the shape the algorithm actually found instead of forcing it into a
+    circle. If `oe_df` (from cluster_observed_expected) is supplied, hulls are
+    shaded by O/E; otherwise each cluster gets its own categorical colour.
+
+    Clusters spanning fewer than three distinct locations cannot form a
+    polygon. They are drawn as points and reported, not dropped silently.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    prefix = f"{nickname}_" if nickname else ""
+
+    df = df_clusters.copy()
+    total_clusters = df['cluster'].nunique()
+
+    if top_n is not None and top_n < total_clusters:
+        keep = (df.groupby('cluster').size()
+                  .sort_values(ascending=False).head(top_n).index)
+        df = df[df['cluster'].isin(keep)]
+        title_suffix = f" (top {top_n} of {total_clusters})"
+    else:
+        title_suffix = f" (all {total_clusters} clusters)"
+
+    oe_lookup = oe_df.set_index('cluster').to_dict('index') if oe_df is not None else {}
+    shade_by_oe = bool(oe_lookup)
+    if shade_by_oe:
+        vals = [v['oe_ratio'] for v in oe_lookup.values() if pd.notna(v['oe_ratio'])]
+        oe_min, oe_max = (min(vals), max(vals)) if vals else (0.0, 1.0)
+
+    palette = px.colors.qualitative.Bold
+    fig = go.Figure()
+    no_polygon = []
+
+    for i, (cid, grp) in enumerate(df.groupby('cluster')):
+        pts = grp[['lon', 'lat']].drop_duplicates().values
+        meta = oe_lookup.get(cid, {})
+
+        oe = meta.get('oe_ratio', np.nan)
+        if shade_by_oe and pd.notna(oe):
+            frac = 0.0 if oe_max == oe_min else (oe - oe_min) / (oe_max - oe_min)
+            colour = px.colors.sample_colorscale('Reds', [0.25 + 0.7 * frac])[0]
+        else:
+            colour = palette[i % len(palette)]
+
+        bits = [f"<b>Cluster {cid}</b>",
+                f"cases: {meta.get('observed', len(grp))}",
+                f"ZIPs: {meta.get('n_zips', grp['zip'].nunique())}"]
+        if pd.notna(oe):
+            bits.append(f"O/E: {oe:.2f}")
+        if 'start' in meta:
+            bits.append(f"{meta['start']:%Y-%m-%d} to {meta['end']:%Y-%m-%d}"
+                        f" ({meta['duration_days']}d)")
+        if 'radius_km' in meta:
+            bits.append(f"radius: {meta['radius_km']:.1f} km")
+        label = "<br>".join(bits)
+
+        has_hull = False
+        if len(pts) >= 3:
+            try:
+                ring = pts[ConvexHull(pts).vertices]
+                ring = np.vstack([ring, ring[:1]])   # close the polygon
+                fig.add_trace(go.Scattermap(
+                    lon=ring[:, 0], lat=ring[:, 1],
+                    mode='lines', fill='toself',
+                    fillcolor=_to_rgba(colour, 0.35),
+                    line=dict(color=colour, width=2),
+                    name=f"Cluster {cid}", legendgroup=str(cid),
+                    hovertemplate=label + "<extra></extra>",
+                ))
+                has_hull = True
+            except Exception:
+                pass                                  # collinear: no polygon
+        if not has_hull:
+            no_polygon.append(cid)
+
+        fig.add_trace(go.Scattermap(
+            lon=grp['lon'], lat=grp['lat'], mode='markers',
+            marker=dict(size=7, color=colour),
+            name=f"Cluster {cid}", legendgroup=str(cid),
+            showlegend=not has_hull,
+            hovertemplate=label + "<extra></extra>",
+        ))
+
+    if no_polygon:
+        print(f"Note: {len(no_polygon)} cluster(s) span fewer than three distinct "
+              f"locations (or are perfectly collinear) and are drawn as points "
+              f"only: {sorted(no_polygon)}")
+
+    fig.update_layout(
+        map=dict(style="carto-positron",
+                center=dict(lat=df['lat'].mean(), lon=df['lon'].mean()),
+                zoom=zoom),
+        title=(f"ST-DBSCAN cluster footprints{title_suffix}"
+               + (" — shaded by O/E" if shade_by_oe else "")),
+        margin=dict(l=0, r=0, t=50, b=0),
+        legend=dict(title="Cluster"),
+    )
+    path = os.path.join(output_dir, f"{prefix}4_cluster_hulls.html")
+    fig.write_html(path)
+    print(f"- Saved {os.path.basename(path)}")
+    return fig

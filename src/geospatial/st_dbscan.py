@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.metrics.pairwise import haversine_distances
 from sklearn.cluster import DBSCAN
 
@@ -109,3 +110,94 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     
     print(f"Clustering complete. Discovered {clusters['cluster'].nunique()} unique clusters.")
     return clusters
+
+def cluster_observed_expected(df_clusters, cas_file, pop_file):
+    """
+    Observed vs expected cases for each ST-DBSCAN cluster.
+
+    Expected is what the cluster's ZIPs would produce over the cluster's own
+    date window at the study-wide baseline rate, so O/E lands on roughly the
+    same scale as SaTScan's relative risk and is scoped to the window the
+    cluster was actually active, not the whole study period.
+
+    Two things this is NOT. There is no p-value. And because clusters are
+    selected by density in the first place, an O/E computed afterwards is
+    biased upward with no null to correct against. Descriptive, not inferential.
+
+    Parameters
+    ----------
+    df_clusters : pd.DataFrame
+        Output of run_small_st_dbscan (clustered records only).
+    cas_file, pop_file : str
+        The same files passed to run_small_st_dbscan. The case file is needed
+        because df_clusters has noise removed and so cannot supply the
+        study-wide denominator.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per cluster, sorted by O/E descending.
+    """
+    cases = read_satscan_cases(cas_file)
+    pop = read_satscan_pop(pop_file)
+
+    study_start, study_end = cases['date'].min(), cases['date'].max()
+
+    # Person-days year by year, so a ZIP that grows or shrinks across the
+    # study is not collapsed to a single flat population.
+    dates = pd.date_range(study_start, study_end, freq='D')
+    days_per_year = pd.Series(dates.year).value_counts().sort_index()
+    days_per_year.index.name = 'year'
+    days_per_year.name = 'days'
+
+    pop_days = pop.join(days_per_year, on='year')
+    pop_days['person_days'] = pop_days['population'] * pop_days['days']
+    total_person_days = pop_days['person_days'].sum()
+    if total_person_days <= 0:
+        raise ValueError("No person-time at risk; check the population file.")
+
+    baseline_rate = cases['n_case'].sum() / total_person_days  # per person-day
+    pop_lookup = pop.set_index(['zip', 'year'])['population']
+
+    EARTH_RADIUS_KM = 6371.0
+    rows, missing = [], set()
+
+    for cid, grp in df_clusters.groupby('cluster'):
+        start, end = grp['date'].min(), grp['date'].max()
+        duration_days = (end - start).days + 1
+        member_zips = list(grp['zip'].unique())
+
+        # Population in the cluster's start year. Clusters are short relative
+        # to a year, so one year is the right denominator.
+        keys = [(z, start.year) for z in member_zips]
+        pops = pop_lookup.reindex(keys)
+        missing |= {z for (z, _), p in zip(keys, pops) if pd.isna(p)}
+        pop_at_risk = pops.sum()
+
+        expected = baseline_rate * pop_at_risk * duration_days
+        observed = grp['n_case'].sum()
+
+        lat_c, lon_c = grp['lat'].mean(), grp['lon'].mean()
+        d = haversine_distances(
+            np.radians(grp[['lat', 'lon']].values),
+            np.radians([[lat_c, lon_c]]),
+        ) * EARTH_RADIUS_KM
+
+        rows.append({
+            'cluster': cid, 'observed': observed, 'expected': expected,
+            'oe_ratio': observed / expected if expected > 0 else np.nan,
+            'n_zips': len(member_zips), 'n_records': len(grp),
+            'start': start, 'end': end, 'duration_days': duration_days,
+            'pop_at_risk': pop_at_risk,
+            'centroid_lat': lat_c, 'centroid_lon': lon_c,
+            'radius_km': float(d.max()),
+        })
+
+    if missing:
+        print(f"Warning: {len(missing)} ZIP(s) had no population row for their "
+                f"cluster's start year and were left out of the denominator, "
+                f"which inflates O/E: {sorted(missing)}")
+
+    return (pd.DataFrame(rows)
+            .sort_values('oe_ratio', ascending=False)
+            .reset_index(drop=True))

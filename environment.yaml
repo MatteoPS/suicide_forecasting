@@ -6,6 +6,7 @@ dependencies:
     - python=3.10
     - pandas
     - numpy
+    - scipi
     - matplotlib
     - plotly          # src/utils/viz.py
     - scikit-learn    # src/geospatial/st_dbscan.py
