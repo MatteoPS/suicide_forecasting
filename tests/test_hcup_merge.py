@@ -4,9 +4,6 @@ The notebook markdown says the AHAL merge "still messes up when trying to get
 the hospital fips". These tests pin down what each branch actually does, so
 that debugging can start from a known baseline rather than from a live
 Redivis session.
-
-Behaviour is unchanged from the notebook version, including the two warts
-called out below.
 """
 import numpy as np
 import pandas as pd
@@ -76,17 +73,25 @@ def test_operates_in_place_and_returns_the_frame():
     assert returned is df
 
 
-def test_missing_identifiers_become_the_string_nan():
-    """Wart carried over from the notebook.
+def test_missing_identifiers_stay_nan():
+    """Fixed wart, formerly carried over from the notebook.
 
-    The final `astype(str)` turns NaN into the literal 'nan', so two rows with
-    a missing HOSPID compare equal and will merge to each other. Filter on NaN
-    before merging if that matters.
+    A missing HOSPID used to be turned into the literal string 'nan' by a
+    column-wide `astype(str)`, so two rows with a missing HOSPID would
+    compare equal and merge to each other. It's now left as actual NaN.
     """
     df = pd.DataFrame({"HOSPID": [np.nan, "123"]})
     clean_hcup_missing_codes(df)
-    assert df.loc[0, "HOSPID"] == "nan"
-
+    assert pd.isna(df.loc[0, "HOSPID"])
+    
+def test_missing_hospid_does_not_match_across_rows():
+    """Second half of the same wart: a missing merge key used to become the
+    string 'nan' inside smart_merge_ahal itself, so two rows with no HOSPID
+    would spuriously match each other. It's now left as NaN."""
+    core = pd.DataFrame({"HOSPID": [np.nan, np.nan], "AYEAR": ["2015", "2015"]})
+    ahal = pd.DataFrame({"HOSPID": [np.nan], "YEAR": ["2015"], "HFIPSSTCO": ["36061"]})
+    out = smart_merge_ahal(core, ahal)
+    assert out["HFIPSSTCO"].isna().all()
 
 def test_custom_identifier_columns():
     df = pd.DataFrame({"MYID": ["0123"], "HOSPID": ["0456"]})
