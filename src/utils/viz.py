@@ -249,18 +249,23 @@ def visualize_st_dbscan_clusters(df_clusters, output_dir="outputs", nickname="",
         size_col = 'zip_case_count'
         size_label = 'Cases in ZIP'
 
+    # Floor size values so isolated single-case points stay visible on the
+    # map instead of shrinking to near-invisible dots.
+    df_clusters['_size_display'] = df_clusters[size_col].clip(lower=df_clusters[size_col].max() * 0.15)
+
     fig_map = px.scatter_map(
         df_clusters, 
         lat="lat", 
         lon="lon", 
         color="cluster_id",
-        size=size_col,
-        size_max=20,
+        size="_size_display",
+        size_max=40,
         hover_name="zip",
         hover_data=["date", "n_case", "weight"],
         title=f"ST-DBSCAN Clusters: Geographic View{title_suffix} — dot size: {size_label}",
         map_style="carto-positron",
-        zoom=10
+        zoom=10,
+        opacity=0.1
     )
     fig_map.write_html(os.path.join(output_dir, f"{prefix}1_cluster_map.html"))
     print(f"- Saved {prefix}1_cluster_map.html")
