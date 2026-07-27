@@ -112,6 +112,10 @@ def harmonize_zcta_boundaries(df: pd.DataFrame, zip_col: str = 'ZIP', pop_col: s
     """
     Harmonizes 2010-2019 ZCTA populations to 2020 ZCTA boundaries using the 
     local Census Bureau Relationship File.
+
+    ZIPs in `df` with no matching row in the crosswalk are dropped (they
+    can't be reassigned to a 2020 ZCTA) and reported, rather than silently
+    disappearing from the population totals.
     """
     # 1. Split the time series at the actual API boundary change (2021)
     df_pre_2020 = df[df[year_col] < 2021].copy()
@@ -134,8 +138,15 @@ def harmonize_zcta_boundaries(df: pd.DataFrame, zip_col: str = 'ZIP', pop_col: s
     # Keep only necessary crosswalk columns
     cw_subset = crosswalk[['GEOID_ZCTA5_10', 'GEOID_ZCTA5_20', 'AF']]
     
-    # 4. Merge pre-2020 data with the crosswalk
-    merged = df_pre_2020.merge(cw_subset, left_on=zip_col, right_on='GEOID_ZCTA5_10', how='inner')
+    # 4. Merge pre-2020 data with the crosswalk, reporting ZIPs that don't match.
+    merged = df_pre_2020.merge(cw_subset, left_on=zip_col, right_on='GEOID_ZCTA5_10', how='left')
+    unmatched_mask = merged['GEOID_ZCTA5_10'].isna()
+    if unmatched_mask.any():
+        dropped = merged.loc[unmatched_mask, zip_col].unique()
+        dropped_pop = merged.loc[unmatched_mask, pop_col].sum()
+        print(f"Warning: {len(dropped)} ZIP(s) not in crosswalk, dropped "
+              f"({dropped_pop:.0f} people total): {sorted(dropped)}")
+    merged = merged[~unmatched_mask].copy()
     
     # 5. Apportion the historical population
     merged['Adjusted_Pop'] = merged[pop_col] * merged['AF']
@@ -173,10 +184,6 @@ def calc_pct_change(df, year_old, year_new):
                     np.nan)
 
 
-# --- HCUP -------------------------------------------------------------------
-# Moved out of notebooks/0.4. Behaviour is unchanged from the notebook version;
-# see the caveat in clean_hcup_missing_codes about NaN stringification.
-
 HCUP_MISSING_CODES = [-9999, -9998, -99, -9, '-9999', '-9998', '-99', '-9']
 
 # Identifier columns that arrive with inconsistent formatting across states and
@@ -192,10 +199,8 @@ def clean_hcup_missing_codes(df: pd.DataFrame, id_cols: list = None) -> pd.DataF
     then stripped of float suffixes ('1234.0') and leading zeros so that the
     same hospital compares equal across a CORE and an AHAL file.
 
-    Caveat carried over from the notebook: the final `astype(str)` turns NaN
-    into the literal string 'nan'. Rows with a missing identifier will
-    therefore match each other on merge. Filter on NaN before merging if that
-    matters for your analysis.
+    Missing identifiers are left as actual NaN (not the string 'nan'), so
+    rows with a missing identifier no longer match each other on merge.
 
     Operates in place and also returns the frame, matching the notebook's use.
     """
@@ -206,7 +211,7 @@ def clean_hcup_missing_codes(df: pd.DataFrame, id_cols: list = None) -> pd.DataF
 
     for col in id_cols:
         if col in df.columns:
-            mask = df[col].notna()
+            mask = df[col].notna() # NaNs are masket mask = avoid becoming str 'nan'.
             df.loc[mask, col] = (
                 df.loc[mask, col]
                 .astype(str)
@@ -214,7 +219,7 @@ def clean_hcup_missing_codes(df: pd.DataFrame, id_cols: list = None) -> pd.DataF
                 .str.strip()
                 .str.replace(r'^0+(?!$)', '', regex=True)
             )
-            df[col] = df[col].astype(str)
+
 
     return df
 
@@ -232,6 +237,10 @@ def smart_merge_ahal(df_core: pd.DataFrame, df_ahal: pd.DataFrame) -> pd.DataFra
     neither does, the function gives up and returns the CORE frame with an
     empty HFIPSSTCO so downstream geocoding degrades to NaN rather than
     raising.
+
+    A missing merge key is left as NaN rather than cast to the string 'nan',
+    so rows with no usable hospital ID don't spuriously match each other (or
+    a genuinely missing key on the AHAL side) during the merge.
     """
     if df_core.empty or df_ahal.empty:
         return df_core
@@ -258,7 +267,11 @@ def smart_merge_ahal(df_core: pd.DataFrame, df_ahal: pd.DataFrame) -> pd.DataFra
         return df_core
 
     ahal_clean = df_ahal.drop(columns=[drop_key], errors='ignore')
-    df_core[merge_key] = df_core[merge_key].astype(str)
-    ahal_clean[merge_key] = ahal_clean[merge_key].astype(str)
+
+    core_mask = df_core[merge_key].notna()
+    df_core.loc[core_mask, merge_key] = df_core.loc[core_mask, merge_key].astype(str)
+
+    ahal_mask = ahal_clean[merge_key].notna()
+    ahal_clean.loc[ahal_mask, merge_key] = ahal_clean.loc[ahal_mask, merge_key].astype(str)
 
     return df_core.merge(ahal_clean, on=[merge_key, 'YEAR'], how='left')

@@ -59,10 +59,10 @@ def build_nvdrs_frames(
     `geo_level=None` gives a single national count column. Otherwise the result
     is one column per geography.
 
-    Note that for `date_basis='death'` the geography is chosen by `geo_col`,
-    not by `geo_level`; `geo_level` only decides whether to pivot at all. That
-    is inherited from `aggregate_nvdrs_daily` - pass `geo_col='DeathState'`
-    explicitly when you want state columns.
+    Note: pass `geo_col='DeathState'` explicitly when you want state columns.
+    For `date_basis='death'` the geography is chosen by `geo_col`, not by `geo_level`; 
+    `geo_level` only decides whether to pivot at all. 
+    That is inherited from `aggregate_nvdrs_daily`
     """
     if date_basis == "injury":
         daily = aggregate_nvdrs_daily_injury(df, geo_level=geo_level)

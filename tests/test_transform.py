@@ -271,17 +271,15 @@ def test_harmonize_treats_2020_as_pre_boundary_change(crosswalk_file):
     out = harmonize_zcta_boundaries(df)
     assert set(out["ZIP"]) == {"20002", "20003"}
 
-
-def test_harmonize_drops_zips_absent_from_the_crosswalk(crosswalk_file, pop_frame):
-    """Documented consequence of the inner join.
-
-    ZIP 10009 has 900 people and no crosswalk row, so it disappears without a
-    warning. Worth knowing when reconciling national population totals.
-    """
+def test_harmonize_reports_zips_absent_from_the_crosswalk(crosswalk_file, pop_frame, capsys):
+    """ZIP 10009 has 900 people and no crosswalk row. It's dropped, but now
+    with a printed warning naming it and how much population it carried."""
     out = harmonize_zcta_boundaries(pop_frame)
     assert "10009" not in set(out["ZIP"])
     assert out[out["Year"] == 2015]["Population"].sum() == 2500  # 900 people lost
-
+    captured = capsys.readouterr()
+    assert "10009" in captured.out
+    assert "Warning" in captured.out
 
 def test_harmonize_carries_state_and_county_when_asked(crosswalk_file):
     df = pd.DataFrame(
