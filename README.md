@@ -12,16 +12,16 @@ This repo works at ZCTA resolution over 2010 to 2023 and separates the two signa
 
 ## Status by component
 
-| Component | Location | Status |
-| --- | --- | --- |
-| ETL, ZCTA boundary harmonization, Census / BRFSS / HCUP ingest | `src/etl/` | Working - real data |
-| SaTScan input generation, coordinate recovery, missingness accounting | `src/geospatial/prep_satscan.py` | Working; dropped cases are logged to file, not silent |
-| Regional subsetting of SaTScan artifacts | `src/geospatial/filter_satscan.py` | Working |
-| SaTScan runs and parameter justification | `notebooks/1.1` | Five configurations run and interpreted; two more specified|
-| ST-DBSCAN, rate-weighted, dense | `src/geospatial/st_dbscan.py`, `notebooks/1.2` | Implemented and running; parameters not calibrated (see Known issues) |
-| Time series forecasting (ETS, AutoARIMA, LightGBM) | `src/statistical/baselines.py`, `notebooks/0.1` | Exploratory. No held-out evaluation yet; first passes were noise dominated |
-| Ensemble and dynamical layers | `config/ensemble.yaml`, `config/dynamical.yaml` | Empty scaffolding |
-| Tests | `tests/` | Working. ETL, geospatial and pipeline layers covered; model-layer tests are declared and skip until those modules exist |
+| Component                                                             | Location                                            | Status                                                                                                                  |
+| --------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ETL, ZCTA boundary harmonization, Census / BRFSS / HCUP ingest        | `src/etl/`                                        | Working - real data                                                                                                     |
+| SaTScan input generation, coordinate recovery, missingness accounting | `src/geospatial/prep_satscan.py`                  | Working; dropped cases are logged to file, not silent                                                                   |
+| Regional subsetting of SaTScan artifacts                              | `src/geospatial/filter_satscan.py`                | Working                                                                                                                 |
+| SaTScan runs and parameter justification                              | `notebooks/1.1`                                   | Five configurations run and interpreted; two more specified                                                             |
+| ST-DBSCAN, rate-weighted, dense                                       | `src/geospatial/st_dbscan.py`, `notebooks/1.2`  | Implemented and running                                                                                                 |
+| Time series forecasting (ETS, AutoARIMA, LightGBM)                    | `src/statistical/baselines.py`, `notebooks/0.1` | Exploratory. No held-out evaluation yet; first passes were noise dominated                                              |
+| Ensemble and dynamical layers                                         | `config/ensemble.yaml`, `config/dynamical.yaml` | Empty scaffolding                                                                                                       |
+| Tests                                                                 | `tests/`                                          | Working. ETL, geospatial and pipeline layers covered; model-layer tests are declared and skip until those modules exist |
 
 ## What the detection layer has shown
 
@@ -31,7 +31,6 @@ This repo works at ZCTA resolution over 2010 to 2023 and separates the two signa
 
 ## Known issues
 
-- **The ST-DBSCAN density threshold is currently non-binding.** Sample weights are incidence per 100,000 population. Since no ZCTA approaches 1M people, a single case already exceeds `min_threshold=0.1` on its own, so every record qualifies as a core point and the density criterion does no work. The NYC run returning 981 clusters from 3,830 records reflects this. The threshold needs raising by two to three orders of magnitude and re-tuning against the cluster size distribution.
 - **Dense distance matrix.** `run_small_st_dbscan` builds an N x N matrix and is capped near 10,000 records. National scale needs a sparse or tiled rewrite.
 - **Rate weighting favors low-population ZCTAs** by construction. That is intended, but it shapes which clusters surface and has not been quantified.
 
@@ -42,7 +41,7 @@ No data is in this repo. `data/` and `outputs/` are gitignored.
 - NVDRS-RAD, restricted, requires a signed data use agreement with CDC
 - HCUP SEDD and SID, restricted, accessed through Redivis
 - Census ACS 5-year and BRFSS, public
-  
+
 *"The National Violent Death Reporting System (NVDRS) is administered by the Centers for Disease Control and Prevention (CDC) by participating NVDRS jurisdictions. The findings and conclusions of this study are those of the authors alone and do not necessarily represent the official position of the CDC or of participating NVDRS jurisdictions."*
 
 ## Setup
