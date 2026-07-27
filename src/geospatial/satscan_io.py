@@ -4,8 +4,6 @@ SaTScan's .cas / .geo / .pop files are headerless and whitespace-delimited,
 and the ZIP column has to be forced back to a zero-padded string on every
 read - pandas otherwise turns 01001 into the integer 1001 and every downstream
 merge silently returns nothing.
-
-These readers were duplicated inline in `st_dbscan.py` and in notebooks/1.2.
 """
 import pandas as pd
 

@@ -65,7 +65,7 @@ def test_each_group_keeps_all_its_members(two_groups):
 def test_returns_expected_columns(two_groups):
     out = run_small_st_dbscan(two_groups["cas"], two_groups["geo"],
                               eps1_km=1.5, eps2_days=14, min_threshold=2)
-    for col in ("zip", "n_case", "date", "days", "lat", "lon", "weight", "cluster"):
+    for col in ("zip", "n_case", "date", "days", "lat", "lon", "weight", "cluster","weight_type"):
         assert col in out.columns
 
 

@@ -14,7 +14,7 @@ from src.utils.config import load_config
 
 needs_ml = pytest.mark.skipif(
     importlib.util.find_spec("src.ml") is None,
-    reason="src/ml does not exist yet; see config/ml.yaml and docs/final_repo_structure_dummy.md",
+    reason="src/ml does not exist yet; see config/ml.yaml",
 )
 
 

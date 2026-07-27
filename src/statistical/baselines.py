@@ -1,8 +1,7 @@
 """Baseline forecasters for NVDRS incident counts.
 
-Moved out of notebooks/0.1, which fitted these inline. Status is unchanged
-from what the README records: these are first passes with no held-out
-evaluation, and the early results were noise dominated.
+These are first passes with no held-ou evaluation, 
+early results were noise dominated.
 
 The LightGBM baseline lives here alongside the statistical models because the
 notebook compares them head to head. It belongs in `src/ml/` once that package
@@ -37,8 +36,7 @@ def fit_predict_univariate(ts, val_len: int, lags: int, models: list = None) -> 
     return {name: builders[name]().fit(train).predict(val_len) for name in models}
 
 
-def fit_predict_multivariate_lgbm(ts, val_len: int, lags: int,
-                                  cache_dir=None, cache_key: str = None):
+def fit_predict_multivariate_lgbm(ts, val_len: int, lags: int, cache_dir=None, cache_key: str = None):
     """Fit one LightGBM across every component of a multivariate series.
 
     Fitting the national panel takes long enough that the notebook cached both

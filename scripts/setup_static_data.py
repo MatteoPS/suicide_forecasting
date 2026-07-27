@@ -19,7 +19,7 @@ def download_uszipcode_map():
     print("Initializing SearchEngine (this may take a minute)...")
     search = SearchEngine()
     
-    # CORRECTED: Query the SimpleZipcode model directly
+    # Query the SimpleZipcode model directly
     all_zips = search.ses.query(SimpleZipcode).all()
 
     print(f"Extracting and formatting {len(all_zips)} ZIP codes...")

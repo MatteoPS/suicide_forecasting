@@ -33,11 +33,12 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     --------
     pd.DataFrame
         Filtered dataframe containing only clustered records (noise removed).
+        Includes a `weight_type` column ('rate' or 'count') indicating what
+        `weight` represents, for downstream functions like the map viz.
     """
     
     # 1. Load and prep spatial-temporal data
-    # The readers standardize ZIP codes to zero-padded strings, without which
-    # the merges below silently return nothing.
+    # The readers standardize ZIP codes to zero-padded strings, without which the merges below silently return nothing.
     cases = read_satscan_cases(cas_file)
     geo = read_satscan_geo(geo_file)
 
@@ -64,7 +65,8 @@ def run_small_st_dbscan(cas_file, geo_file, pop_file=None, eps1_km=1.5, eps2_day
     else:
         cases['weight'] = cases['n_case']
         print("No population data provided: Weighting by raw case counts.")
-    
+
+    cases['weight_type'] = 'rate' if pop_file else 'count'
     # Merge geographic coordinates
     df = cases.merge(geo, on='zip', how='inner')
     
